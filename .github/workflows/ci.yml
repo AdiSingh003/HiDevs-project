@@ -46,6 +46,39 @@ jobs:
     name: Container image
     needs: [python, frontend]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t hidevs-b2b-negotiator:ci .
+      - name: Start the container (on a host-assigned port, the way Render runs it)
+        run: >-
+          docker run -d --name negotiator -p 8000:10000 -e PORT=10000
+          -e TELEMETRY_WEBHOOK_SECRET=ci-only-secret hidevs-b2b-negotiator:ci
+      - name: Smoke-test the running app
+        run: |
+          base=http://127.0.0.1:8000
+          for i in $(seq 1 30); do curl -fsS $base/api/health && break; sleep 2; done
+          curl -fsS $base/api/health
+          curl -fsS $base/ | grep -q '<div id="root">'   # the built UI is served
+
+          # one full offline negotiation: red-team attacks, agreement, signed contract, PDF
+          run=$(curl -fsS -X POST $base/api/negotiations -H 'Content-Type: application/json' \
+            -d '{"scenario_id":"semiconductor_spot_po","llm_mode":"offline","red_team":true,"speed_ms":0,"wait":true}')
+          echo "$run" | jq '{status, contract_id}'
+          test "$(echo "$run" | jq -r .status)" = agreement
+          contract=$(echo "$run" | jq -r .contract_id)
+          curl -fsS -X POST $base/api/contracts/$contract/verify | jq -e '.valid and .fully_executed'
+          curl -fsS -o contract.pdf $base/api/contracts/$contract/pdf
+          head -c 5 contract.pdf | grep -q '%PDF-'
+
+          # Docker's own HEALTHCHECK should report healthy too
+          for i in $(seq 1 40); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' negotiator)
+            [ "$status" != starting ] && break
+            sleep 3
+          done
+          echo "container health: $status"
+          test "$status" = healthy
+      - name: Container logs
+        if: always()
+        run: docker logs negotiator

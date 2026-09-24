@@ -28,12 +28,14 @@ COPY agents/ agents/
 COPY backend/ backend/
 COPY --from=ui /ui/dist frontend/dist
 
-RUN useradd --create-home --uid 10001 negotiator \
+RUN useradd --create-home --uid 1000 negotiator \
  && mkdir -p /data /tmp/automata \
  && chown -R negotiator /data /tmp/automata
 USER negotiator
 
+# Hosts like Render pick the port through $PORT; 8000 otherwise
+ENV PORT=8000
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)" || exit 1
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+  CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"PORT\"]}/api/health', timeout=4)" || exit 1
+CMD ["sh", "-c", "exec uvicorn backend.app.main:app --host 0.0.0.0 --port \"$PORT\""]

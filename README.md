@@ -178,6 +178,25 @@ Other ways to run it:
 - Browser end-to-end test, with the server running: `python -m playwright install chromium`, then
   `python scripts/e2e_ui.py`.
 
+### Hosting it on Render
+
+On every push, CI builds the Docker image and starts it. It then runs a full negotiation against the container and
+checks the contract's signatures and the PDF. Render's free plan builds the same Dockerfile on its own servers and
+serves it. To set that up once:
+
+1. Sign in at render.com with GitHub and choose *New → Web Service*. Pick this repository; Render detects the
+   Dockerfile.
+2. Choose the **Free** instance type.
+3. Under *Environment Variables*, add `TELEMETRY_WEBHOOK_SECRET` with any long random string. You don't need to set a
+   port: the container listens on whatever `PORT` Render gives it.
+4. Under *Advanced*, set the health check path to `/api/health`. If *Auto-Deploy* offers "After CI Checks Pass",
+   choose it, so a commit that fails CI never goes live.
+5. Create the service. The first build takes a few minutes, and then the app is live at
+   `https://<service-name>.onrender.com`.
+
+The service runs on the offline engine unless you give it Lyzr variables. The API has no login, though, so a Lyzr key
+there would let any visitor spend your Lyzr credits.
+
 Without a Lyzr key, everything runs on the offline policy engine and finishes in seconds. With a key, the arena's
 *Auto* mode uses the Lyzr agents, and a negotiation takes about two minutes. You can still pick *Policy engine* for
 a quick run.
@@ -361,7 +380,7 @@ backend/         FastAPI app: REST, SSE streaming, persistence, webhook security
 frontend/        React + TypeScript arena, built with Vite
 scripts/         Playwright end-to-end test
 docs/            screenshots
-.github/         CI: tests with OPA, frontend build, Docker build
+.github/         CI: tests with OPA, frontend build, container build and smoke test
 ```
 
 ## Security notes
@@ -381,5 +400,5 @@ docs/            screenshots
 
 - Each issue is scored linearly. Curved preferences would need a numeric solver for the Pareto frontier.
 - A negotiation on the Lyzr LLM agents takes about two minutes: 20 turns, each screened by Safe AI.
-- CI builds the Docker image on every push, but doesn't start the container, so the image has only been built, not
-  run end to end.
+- On Render's free plan the app goes to sleep after 15 minutes without visitors and takes about a minute to wake up.
+  Its saved runs, contracts and signing keys are wiped whenever it restarts or redeploys.
