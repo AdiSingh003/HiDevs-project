@@ -136,7 +136,7 @@ sequenceDiagram
 - **Architecture and testing.**
   - A layered Python package (core, guardrails, negotiation, contract, audit, lyzr), a FastAPI backend and a React
     frontend.
-  - 149 tests, including edge cases and every deadlock detector, a mocked Lyzr server built from the live API, and
+  - 150 tests, including edge cases and every deadlock detector, a mocked Lyzr server built from the live API, and
     cross-checks against a real OPA binary.
   - A Playwright browser test and a GitHub Actions CI workflow.
 - **Dashboard and UX.**
@@ -162,7 +162,7 @@ OpenAI client. The code we use is plain Python that only needs `requests` and `p
 those pins.
 
 ```bash
-python -m pytest                                          # 149 tests (OPA checks run if `opa` is on PATH or OPA_BIN is set)
+python -m pytest                                          # 150 tests (OPA checks run if `opa` is on PATH or OPA_BIN is set)
 python -m agents.cli run semiconductor_spot_po --red-team # one negotiation in the terminal; contract lands in data/cli/
 python -m agents.cli rfq steel_rfq                        # the 1-vs-3 sourcing event
 python -m agents.cli rego semiconductor_spot_po --role buyer   # print the guardrail compiled from an envelope
@@ -194,8 +194,14 @@ serves it. To set that up once:
 5. Create the service. The first build takes a few minutes, and then the app is live at
    `https://<service-name>.onrender.com`.
 
-The service runs on the offline engine unless you give it Lyzr variables. The API has no login, though, so a Lyzr key
-there would let any visitor spend your Lyzr credits.
+To use the Lyzr agents on the live site, open the service's *Environment* page, choose *Add from .env* and paste
+your `.env`. Without those variables the site runs on the offline engine.
+
+The API has no login, so every visitor's Lyzr runs are paid from your Lyzr credits. If the credits run out, the site
+keeps working:
+- the agents' moves come from the policy engine
+- Safe AI and AIMS failures are recorded while the local rules stay in charge
+- contracts are drafted from the offline template
 
 Without a Lyzr key, everything runs on the offline policy engine and finishes in seconds. With a key, the arena's
 *Auto* mode uses the Lyzr agents, and a negotiation takes about two minutes. You can still pick *Policy engine* for
@@ -402,3 +408,5 @@ docs/            screenshots
 - A negotiation on the Lyzr LLM agents takes about two minutes: 20 turns, each screened by Safe AI.
 - On Render's free plan the app goes to sleep after 15 minutes without visitors and takes about a minute to wake up.
   Its saved runs, contracts and signing keys are wiped whenever it restarts or redeploys.
+- If Lyzr fails while a contract is being drafted, the offline template drafts it instead, and the contract records
+  that it did.

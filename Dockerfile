@@ -28,9 +28,10 @@ COPY agents/ agents/
 COPY backend/ backend/
 COPY --from=ui /ui/dist frontend/dist
 
+# /app/data too, so a pasted .env with DATA_DIR=data still points somewhere writable
 RUN useradd --create-home --uid 1000 negotiator \
- && mkdir -p /data /tmp/automata \
- && chown -R negotiator /data /tmp/automata
+ && mkdir -p /data /app/data /tmp/automata \
+ && chown -R negotiator /data /app/data /tmp/automata
 USER negotiator
 
 # Hosts like Render pick the port through $PORT; 8000 otherwise

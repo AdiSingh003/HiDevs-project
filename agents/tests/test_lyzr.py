@@ -11,7 +11,9 @@ import pytest
 
 from agents.audit.aims import LyzrAIMSSink, reconcile_anchors
 from agents.audit.ledger import AuditLedger
-from agents.contract.automata_pipeline import TemplateDraftingModel
+from agents.contract.automata_pipeline import DraftingPipeline, TemplateDraftingModel
+from agents.contract.compiler import ContractCompiler, verify_contract
+from agents.contract.signing import KeyStore
 from agents.core.models import Action, Decision
 from agents.guardrails.arbiter import LegalArbiter, ReviewContext
 from agents.lyzr.client import LyzrAgentClient, LyzrError, extract_json, extract_text
@@ -303,6 +305,23 @@ async def test_full_platform_in_lyzr_mode(tmp_path):
     assert {a["reason"] for a in anchors} == {"negotiation_finished", "contract_compiled"}
     assert reconcile_anchors(session.ledger.entries, anchors)["all_match"]
     await platform.aclose()
+
+
+def test_drafting_falls_back_to_the_template_when_lyzr_fails():
+    """Spent credits or an outage during drafting must not cost the parties their contract."""
+    s = settings(lyzr_max_retries=0)
+    down = httpx.MockTransport(lambda r: httpx.Response(503, json={"detail": "down"}))
+    client = LyzrAgentClient(s, transport=down, sync_transport=down)
+    compiler = ContractCompiler(KeyStore(), DraftingPipeline(s, client))
+    sc = get_scenario("semiconductor_spot_po")
+    terms = {"unit_price": 3.9, "delivery_days": 25, "payment_terms_days": 30, "sla_on_time_pct": 97.0,
+             "late_penalty_pct_per_day": 0.4, "penalty_cap_pct": 8.0, "warranty_months": 18}
+    contract = compiler.compile(scenario=sc, supplier=sc.suppliers[0], terms=terms, cfo_required=False,
+                                negotiation={"rounds": 1, "outcome": "agreement", "interventions": 0})
+    assert contract["drafting"]["model"] == "offline-template (Lyzr drafting unavailable)"
+    assert contract["drafting"]["substitutions"] == [] and len(contract["clauses"]) == 15
+    assert all(c["source"] == "automata-template" for c in contract["clauses"])
+    assert verify_contract(contract)["valid"]
 
 
 def test_lyzr_mode_requires_agents():

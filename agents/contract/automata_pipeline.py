@@ -197,7 +197,19 @@ class DraftingPipeline:
         return m, m, m
 
     def run(self, payload: dict[str, Any], session_id: str) -> DraftingResult:
-        drafter_model, reviewer_model, summary_model = self._models(session_id)
+        try:
+            return self._run(payload, *self._models(session_id), online=self.online)
+        except Exception as exc:  # a Lyzr outage or spent credits must not cost the parties their contract
+            if not self.online:
+                raise
+            log.warning("Lyzr drafting failed, using the offline template instead: %s", exc)
+            m = TemplateDraftingModel()
+            result = self._run(payload, m, m, m, online=False)
+            result.model = "offline-template (Lyzr drafting unavailable)"
+            return result
+
+    def _run(self, payload: dict[str, Any], drafter_model: AIModel, reviewer_model: AIModel, summary_model: AIModel,
+             *, online: bool) -> DraftingResult:
         box = ResourceBox(base_folder=str(self.workdir / "resources"))
         drafter = Agent(role="Contract Drafter",
                         prompt_persona="a senior commercial contracts counsel who drafts precise, enforceable clauses")
@@ -221,9 +233,9 @@ class DraftingPipeline:
             outputs = pipeline.run()
         log.debug("automata pipeline log:\n%s", buffer.getvalue())
         texts = [str(o.get("task_output", "")) for o in outputs]
-        return self._merge(payload, texts, drafter_model.parameters.get("model", "?"))
+        return self._merge(payload, texts, drafter_model.parameters.get("model", "?"), online)
 
-    def _merge(self, payload: dict[str, Any], texts: list[str], model: str) -> DraftingResult:
+    def _merge(self, payload: dict[str, Any], texts: list[str], model: str, online: bool) -> DraftingResult:
         canonical = {c["id"]: c for c in render_clauses(payload)}
         drafted = (extract_json(texts[0]) or {}).get("clauses", []) if texts else []
         drafted_by_id = {c.get("id"): c for c in drafted if isinstance(c, dict)}
@@ -234,12 +246,12 @@ class DraftingPipeline:
             problems = ["clause missing from draft"] if cand is None else verify_clause(
                 m["id"], str(cand.get("text", "")), payload["terms"], payload["decimals"], extra)
             if problems:
-                if self.online:
+                if online:
                     substitutions.append({"clause": m["id"], "problems": problems})
                 final.append({**canonical[m["id"]], "source": "canonical-template"})
             else:
                 final.append({"id": m["id"], "title": cand.get("title") or m["title"], "text": str(cand["text"]),
-                              "source": "lyzr-agent" if self.online else "automata-template"})
+                              "source": "lyzr-agent" if online else "automata-template"})
         review = (extract_json(texts[1]) if len(texts) > 1 else None) or {"approved": True, "findings": []}
         summary = texts[2].strip() if len(texts) > 2 and texts[2].strip() else executive_summary(payload)
         return DraftingResult(clauses=final, review=review, summary=summary,
