@@ -16,6 +16,10 @@ log, which is anchored in Lyzr AIMS.
 It runs against live Lyzr agents, and it also runs completely offline when no API key is set. The offline mode is what
 the tests and CI use.
 
+**Live demo: https://hidevs-project.onrender.com/.** It's on Render's free plan, so if nobody has visited for a
+while, the first page load takes about a minute. A negotiation on the Lyzr agents takes about two minutes and
+streams live; pick *Policy engine* under *Agent brains* for a run that finishes in seconds.
+
 ![Two Lyzr agents negotiating in the arena](docs/screenshots/arena-live-lyzr.png)
 
 ## How it works
@@ -240,6 +244,10 @@ We also ran full negotiations against the live service:
   - Blocked: two over-budget offers and one breach of the Indian MSME payment law.
   - Cleaned before delivery: the leaked budget, a prompt injection, abuse and PII.
   - The final terms matched the clean run exactly.
+- **The deployed site.** A negotiation on the live demo ran end to end on Lyzr.
+  - Lyzr agents wrote all 19 turns, and each passed Safe AI and its own OPA guardrail.
+  - All 75 audit entries reached AIMS, and the anchors match.
+  - The Lyzr drafter agent wrote the contract, and all its signatures verify.
 - **The other scenarios with live Safe AI.** Across cold-chain, lithium and the three-supplier RFQ, 93 moves were each
   checked by the OPA guardrail for their own envelope. All were allowed, Lyzr didn't fail once, and the results
   matched the offline runs.
