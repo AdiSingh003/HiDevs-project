@@ -381,4 +381,5 @@ docs/            screenshots
 
 - Each issue is scored linearly. Curved preferences would need a numeric solver for the Pareto frontier.
 - A negotiation on the Lyzr LLM agents takes about two minutes: 20 turns, each screened by Safe AI.
-- We haven't built the Docker image on a local machine yet. The CI workflow builds it on every push.
+- CI builds the Docker image on every push, but doesn't start the container, so the image has only been built, not
+  run end to end.
