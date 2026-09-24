@@ -1,0 +1,147 @@
+{
+  "version": "2026.09-r1",
+  "disclaimer": "Encoded procurement policy for automated guardrails. Citations indicate the legal basis a rule is modelled on; this is not legal advice.",
+  "global": [
+    {
+      "id": "LEGAL-PRICE-POSITIVE",
+      "issue": "unit_price",
+      "min": 0.01,
+      "title": "Consideration must be positive",
+      "citation": "Contract formation requires valuable consideration",
+      "message": "Unit price must be a positive amount"
+    },
+    {
+      "id": "LEGAL-DELIVERY-RANGE",
+      "issue": "delivery_days",
+      "min": 1,
+      "max": 365,
+      "title": "Delivery obligation must be definite",
+      "citation": "Certainty of terms (delivery date must be ascertainable)",
+      "message": "Delivery lead time must be between 1 and 365 days"
+    },
+    {
+      "id": "LEGAL-PAYMENT-RANGE",
+      "issue": "payment_terms_days",
+      "min": 0,
+      "max": 120,
+      "title": "Corporate payment policy ceiling",
+      "citation": "Group treasury policy TP-07",
+      "message": "Payment terms must be between 0 and 120 days"
+    },
+    {
+      "id": "LEGAL-SLA-ACHIEVABLE",
+      "issue": "sla_on_time_pct",
+      "min": 80,
+      "max": 99.9,
+      "title": "Service levels must be measurable and achievable",
+      "citation": "Enforceability of performance obligations (no 100% guarantees)",
+      "message": "On-time-in-full SLA must lie between 80% and 99.9%"
+    },
+    {
+      "id": "LEGAL-LD-RATE",
+      "issue": "late_penalty_pct_per_day",
+      "min": 0.05,
+      "max": 1.0,
+      "title": "Liquidated-damages rate must be proportionate",
+      "citation": "Penalty doctrine: Indian Contract Act 1872 s.74; Cavendish Square Holding v Makdessi [2015] UKSC 67",
+      "message": "Late-delivery LDs must be between 0.05% and 1.0% of order value per day"
+    },
+    {
+      "id": "LEGAL-LD-CAP",
+      "issue": "penalty_cap_pct",
+      "min": 1,
+      "max": 20,
+      "title": "Aggregate LDs must be a genuine pre-estimate of loss",
+      "citation": "Penalty doctrine: Indian Contract Act 1872 s.74; Cavendish Square Holding v Makdessi [2015] UKSC 67",
+      "message": "Aggregate liquidated damages must be capped between 1% and 20% of contract value"
+    },
+    {
+      "id": "LEGAL-WARRANTY-RANGE",
+      "issue": "warranty_months",
+      "min": 6,
+      "max": 60,
+      "title": "Minimum quality warranty",
+      "citation": "Implied conditions as to quality/fitness (Sale of Goods Act 1930 s.16; SGA 1979 s.14)",
+      "message": "Warranty must be between 6 and 60 months"
+    }
+  ],
+  "jurisdictions": {
+    "IN": {
+      "name": "India",
+      "governing_law": "the laws of the Republic of India",
+      "dispute_resolution": "arbitration under the Arbitration and Conciliation Act, 1996, seated in Mumbai, before a sole arbitrator",
+      "rules": [
+        {
+          "id": "IN-MSMED-S15",
+          "issue": "payment_terms_days",
+          "max": 45,
+          "when": "supplier_is_msme",
+          "title": "Statutory payment deadline for MSME suppliers",
+          "citation": "Micro, Small and Medium Enterprises Development Act, 2006 - Section 15",
+          "message": "Payment to an MSME supplier must be made within 45 days of acceptance"
+        }
+      ]
+    },
+    "EU": {
+      "name": "European Union",
+      "governing_law": "the laws of the Federal Republic of Germany",
+      "dispute_resolution": "arbitration under the DIS Arbitration Rules, seated in Frankfurt am Main",
+      "rules": [
+        {
+          "id": "EU-LPD-ART3-5",
+          "issue": "payment_terms_days",
+          "max": 60,
+          "title": "Late Payment Directive - B2B payment period",
+          "citation": "Directive 2011/7/EU on combating late payment in commercial transactions - Article 3(5)",
+          "message": "B2B payment periods may not exceed 60 calendar days"
+        }
+      ]
+    },
+    "UK": {
+      "name": "United Kingdom",
+      "governing_law": "the laws of England and Wales",
+      "dispute_resolution": "arbitration under the LCIA Rules, seated in London",
+      "rules": [
+        {
+          "id": "UK-PPR-60",
+          "issue": "payment_terms_days",
+          "max": 60,
+          "title": "Prompt Payment Code alignment",
+          "citation": "Fair Payment Code / Reporting on Payment Practices Regulations 2017",
+          "message": "Payment terms above 60 days breach the prompt-payment commitment"
+        }
+      ]
+    },
+    "US": {
+      "name": "United States",
+      "governing_law": "the laws of the State of New York",
+      "dispute_resolution": "arbitration administered by the AAA under its Commercial Arbitration Rules, seated in New York",
+      "rules": []
+    }
+  },
+  "mandatory_clauses": [
+    {"id": "definitions", "title": "Definitions and Interpretation"},
+    {"id": "scope", "title": "Scope of Supply"},
+    {"id": "price_payment", "title": "Price and Payment"},
+    {"id": "delivery", "title": "Delivery and Acceptance"},
+    {"id": "service_levels", "title": "Service Levels"},
+    {"id": "liquidated_damages", "title": "Liquidated Damages for Delay"},
+    {"id": "warranty", "title": "Warranty"},
+    {"id": "force_majeure", "title": "Force Majeure"},
+    {"id": "change_control", "title": "Change Control and Renegotiation"},
+    {"id": "limitation_of_liability", "title": "Limitation of Liability"},
+    {"id": "confidentiality", "title": "Confidentiality"},
+    {"id": "anti_bribery", "title": "Anti-Bribery and Compliance"},
+    {"id": "termination", "title": "Termination"},
+    {"id": "governing_law", "title": "Governing Law and Dispute Resolution"},
+    {"id": "entire_agreement", "title": "Entire Agreement"}
+  ],
+  "force_majeure_events": [
+    "severe_weather",
+    "natural_disaster",
+    "port_closure",
+    "epidemic",
+    "war_or_civil_unrest",
+    "government_embargo"
+  ]
+}

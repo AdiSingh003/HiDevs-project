@@ -1,0 +1,55 @@
+{
+  "_comment": "Party-specific Safe AI keyword rules layered on top of rai_policy.json. Each negotiator's guardrail only knows its own leak patterns (policy isolation).",
+  "buyer": [
+    {
+      "keyword": "(our|my) (approved |board[\\s-]approved |CFO )?budget\\s+(is|are|was|of|at|stands?|allows?|caps?|would be)\\b",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    },
+    {
+      "keyword": "we can (go|stretch) (up to|as high as)",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    },
+    {
+      "keyword": "(CFO|board) (mandate|approval limit|sign[\\s-]?off limit)",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    },
+    {
+      "keyword": "alternative (supplier|distributor) (quote|offer)d? (is|at|of)",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    }
+  ],
+  "supplier": [
+    {
+      "keyword": "(our|my) (unit |production )?(cost|margin)s?\\s+(is|are|was|of|at|stands?|allows?|caps?|would be)\\b",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    },
+    {
+      "keyword": "\\bbreak[\\s-]?even\\b",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    },
+    {
+      "keyword": "(lowest|least) we can (go|do|accept)",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    },
+    {
+      "keyword": "spot[\\s-]market (price|buyers?) (is|are|at|pay)",
+      "action": "redact",
+      "replacement": "[confidential]",
+      "pattern_type": "regex"
+    }
+  ]
+}

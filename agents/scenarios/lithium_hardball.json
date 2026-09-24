@@ -1,0 +1,174 @@
+{
+  "id": "lithium_hardball",
+  "title": "Lithium cells hardball (deadlock -> mediation)",
+  "summary": "Two Boulware negotiators with strong tit-for-tat reciprocity stall on a battery-cell supply deal. The engine detects the stalemate and the Legal Arbiter mediates with the Nash bargaining solution; the deal exceeds the agent's delegated authority, so the CFO must co-sign.",
+  "mode": "bilateral",
+  "tags": [
+    "US",
+    "deadlock detection",
+    "Nash mediation",
+    "CFO approval"
+  ],
+  "max_rounds": 14,
+  "seed": 5,
+  "context": {
+    "reference": "RFQ-HES-CELL-2026-212",
+    "title": "Annual supply of 21700 lithium-ion cells",
+    "item": "21700 NMC lithium-ion cells (5,000 mAh)",
+    "item_description": "UL 1642 certified cylindrical cells for grid-storage modules",
+    "quantity": 400000,
+    "quantity_unit": "cells",
+    "currency": "USD",
+    "incoterm": "FCA Reno",
+    "delivery_location": "Helios Energy Storage module plant, Reno NV",
+    "jurisdiction": "US",
+    "buyer": {
+      "name": "Helios Energy Storage Inc.",
+      "address": "2100 Electric Ave, Reno, NV 89502, USA",
+      "signatory_name": "Marcus Chen",
+      "signatory_title": "Senior Category Manager, Cells"
+    },
+    "standard_terms": {
+      "late_penalty_pct_per_day": 0.5,
+      "warranty_months": 12
+    }
+  },
+  "issues": [
+    {
+      "key": "unit_price",
+      "label": "Unit price",
+      "unit": "USD",
+      "buyer_prefers": "lower",
+      "step": 0.01,
+      "decimals": 2
+    },
+    {
+      "key": "delivery_days",
+      "label": "Delivery lead time",
+      "unit": "days",
+      "buyer_prefers": "lower",
+      "step": 1,
+      "decimals": 0
+    },
+    {
+      "key": "payment_terms_days",
+      "label": "Payment terms",
+      "unit": "days",
+      "buyer_prefers": "higher",
+      "step": 5,
+      "decimals": 0
+    },
+    {
+      "key": "sla_on_time_pct",
+      "label": "OTIF service level",
+      "unit": "%",
+      "buyer_prefers": "higher",
+      "step": 0.1,
+      "decimals": 1
+    },
+    {
+      "key": "penalty_cap_pct",
+      "label": "LD cap",
+      "unit": "%",
+      "buyer_prefers": "higher",
+      "step": 0.5,
+      "decimals": 1
+    }
+  ],
+  "buyer": {
+    "role": "buyer",
+    "mandate": {
+      "unit_price": {
+        "ideal": 2.1,
+        "limit": 2.6,
+        "weight": 0.4
+      },
+      "delivery_days": {
+        "ideal": 30,
+        "limit": 60,
+        "weight": 0.18
+      },
+      "payment_terms_days": {
+        "ideal": 90,
+        "limit": 30,
+        "weight": 0.12
+      },
+      "sla_on_time_pct": {
+        "ideal": 99.0,
+        "limit": 95.0,
+        "weight": 0.18
+      },
+      "penalty_cap_pct": {
+        "ideal": 15,
+        "limit": 6,
+        "weight": 0.12
+      }
+    },
+    "batna_description": "Re-qualify an alternative Korean cell vendor (6-month delay, higher price)",
+    "batna_utility": 0.15,
+    "budget_cap": 1040000,
+    "auto_approve_limit": 900000,
+    "strategy": {
+      "tactic": "boulware",
+      "beta": 0.6,
+      "reciprocity": 0.5,
+      "tradeoff_sharpness": 0.2,
+      "aspiration_floor": 0.48
+    },
+    "notes": "Agent authority capped at USD 900k; anything above needs CFO co-signature."
+  },
+  "suppliers": [
+    {
+      "id": "cobalt",
+      "party": {
+        "name": "Cobalt Ridge Cells LLC",
+        "address": "88 Gigafactory Road, Sparks, NV 89434, USA",
+        "signatory_name": "Elena Petrova",
+        "signatory_title": "Head of Commercial",
+        "persona": "Capacity-constrained cell maker that only concedes when the buyer does"
+      },
+      "envelope": {
+        "role": "supplier",
+        "mandate": {
+          "unit_price": {
+            "ideal": 2.9,
+            "limit": 2.35,
+            "weight": 0.42
+          },
+          "delivery_days": {
+            "ideal": 75,
+            "limit": 45,
+            "weight": 0.16
+          },
+          "payment_terms_days": {
+            "ideal": 30,
+            "limit": 75,
+            "weight": 0.18
+          },
+          "sla_on_time_pct": {
+            "ideal": 93.0,
+            "limit": 97.5,
+            "weight": 0.12
+          },
+          "penalty_cap_pct": {
+            "ideal": 4,
+            "limit": 10,
+            "weight": 0.12
+          }
+        },
+        "batna_description": "Allocate the capacity to an existing EV customer at a lower margin",
+        "batna_utility": 0.15,
+        "unit_cost": 2.05,
+        "min_margin_pct": 12,
+        "strategy": {
+          "tactic": "boulware",
+          "beta": 0.6,
+          "reciprocity": 0.5,
+          "tradeoff_sharpness": 0.2,
+          "aspiration_floor": 0.48
+        },
+        "notes": "Hold price; concede only in response to buyer concessions."
+      }
+    }
+  ]
+}

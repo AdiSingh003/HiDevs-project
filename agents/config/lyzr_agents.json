@@ -1,0 +1,84 @@
+{
+  "defaults": {
+    "provider_id": "OpenAI",
+    "model": "gpt-4o-mini",
+    "llm_credential_id": "lyzr_openai",
+    "temperature": 0.4,
+    "top_p": 0.9,
+    "features": [],
+    "tools": [],
+    "store_messages": true
+  },
+  "agents": [
+    {
+      "key": "buyer",
+      "env": "LYZR_BUYER_AGENT_ID",
+      "name": "B2B Buyer Negotiator",
+      "description": "Bounded procurement negotiator: argues for the buyer within a sealed CFO/Legal mandate enforced by the Legal Arbiter.",
+      "agent_role": "Senior procurement negotiator representing the buying organisation",
+      "agent_goal": "Secure the most valuable compliant agreement for the buyer across price, delivery, payment terms, SLA, liquidated damages and warranty without ever disclosing the mandate.",
+      "instructions_file": "prompts/buyer_negotiator.md",
+      "response_format": {"type": "json_object"},
+      "custom_tags": ["hidevs", "negotiation", "buyer"]
+    },
+    {
+      "key": "supplier",
+      "env": "LYZR_SUPPLIER_AGENT_ID",
+      "name": "B2B Supplier Negotiator",
+      "description": "Bounded sales negotiator: argues for the supplier within a sealed finance mandate enforced by the Legal Arbiter.",
+      "agent_role": "Key-account sales negotiator representing the supplying organisation",
+      "agent_goal": "Win a profitable, deliverable agreement for the supplier while protecting margin, cash flow and liability exposure, without ever disclosing the mandate.",
+      "instructions_file": "prompts/supplier_negotiator.md",
+      "response_format": {"type": "json_object"},
+      "custom_tags": ["hidevs", "negotiation", "supplier"]
+    },
+    {
+      "key": "drafter",
+      "env": "LYZR_DRAFTER_AGENT_ID",
+      "name": "Contract Drafter",
+      "description": "Drafts enforceable supply-agreement clauses from structured agreed terms (Lyzr Automata task 1).",
+      "agent_role": "Senior commercial contracts counsel",
+      "agent_goal": "Turn agreed structured terms into precise, enforceable clauses that carry every agreed number exactly.",
+      "instructions_file": "prompts/contract_drafter.md",
+      "response_format": {"type": "json_object"},
+      "temperature": 0.2,
+      "custom_tags": ["hidevs", "contract", "automata"]
+    },
+    {
+      "key": "reviewer",
+      "env": "LYZR_REVIEWER_AGENT_ID",
+      "name": "Legal Reviewer",
+      "description": "Reviews drafted clauses against the jurisdiction rulebook and agreed terms (Lyzr Automata task 2).",
+      "agent_role": "Procurement lawyer and compliance reviewer",
+      "agent_goal": "Catch missing mandatory clauses, statutory conflicts, unenforceable penalties and number drift before signature.",
+      "instructions_file": "prompts/legal_reviewer.md",
+      "response_format": {"type": "json_object"},
+      "temperature": 0.1,
+      "custom_tags": ["hidevs", "contract", "automata"]
+    },
+    {
+      "key": "summary",
+      "env": "LYZR_SUMMARY_AGENT_ID",
+      "name": "CFO Briefing Analyst",
+      "description": "Writes the executive approval memo for the CFO (Lyzr Automata task 3).",
+      "agent_role": "Finance business partner",
+      "agent_goal": "Give approvers a crisp, accurate summary of the deal, its compliance status and whether a co-signature is needed.",
+      "instructions_file": "prompts/cfo_summary.md",
+      "response_format": {"type": "text"},
+      "temperature": 0.3,
+      "custom_tags": ["hidevs", "contract", "automata"]
+    },
+    {
+      "key": "audit",
+      "env": "LYZR_AUDIT_AGENT_ID",
+      "name": "Negotiation Audit Scribe",
+      "description": "Receives hash-chained audit events so every negotiation transcript is stored in Lyzr AIMS sessions.",
+      "agent_role": "Audit log scribe",
+      "agent_goal": "Acknowledge and store each audit event verbatim for AIMS traceability.",
+      "instructions_file": "prompts/audit_scribe.md",
+      "response_format": {"type": "text"},
+      "temperature": 0.0,
+      "custom_tags": ["hidevs", "audit", "aims"]
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "cold_chain_sla",
+  "title": "Pharma cold-chain logistics SLA",
+  "summary": "A pharma distributor contracts GDP-compliant 2-8 degC road freight for 1,200 pallets per quarter. Rate per pallet, transit time, payment terms, OTIF, liquidated damages and the LD cap are negotiated under EU law.",
+  "mode": "bilateral",
+  "tags": ["EU", "logistics SLA", "6 issues", "Late Payment Directive"],
+  "max_rounds": 10,
+  "seed": 23,
+  "context": {
+    "reference": "RFQ-AUR-LOG-2026-044",
+    "title": "Quarterly cold-chain transport services",
+    "item": "GDP-compliant 2-8 degC refrigerated road freight (pallet lanes FRA-MUC-VIE)",
+    "item_description": "Temperature-monitored FTL/LTL transport with continuous data-logger telemetry",
+    "quantity": 1200,
+    "quantity_unit": "pallets",
+    "currency": "EUR",
+    "incoterm": "CIP Vienna",
+    "delivery_location": "Aurora Pharma hub, Vienna",
+    "jurisdiction": "EU",
+    "buyer": {
+      "name": "Aurora Pharma GmbH",
+      "address": "Hanauer Landstrasse 300, 60314 Frankfurt am Main, Germany",
+      "signatory_name": "Dr. Lena Hoffmann",
+      "signatory_title": "Director Global Logistics Procurement"
+    }
+  },
+  "issues": [
+    {"key": "unit_price", "label": "Rate per pallet", "unit": "EUR", "buyer_prefers": "lower", "step": 1, "decimals": 0},
+    {"key": "delivery_days", "label": "Transit time", "unit": "days", "buyer_prefers": "lower", "step": 1, "decimals": 0},
+    {"key": "payment_terms_days", "label": "Payment terms", "unit": "days", "buyer_prefers": "higher", "step": 5, "decimals": 0},
+    {"key": "sla_on_time_pct", "label": "OTIF service level", "unit": "%", "buyer_prefers": "higher", "step": 0.1, "decimals": 1},
+    {"key": "late_penalty_pct_per_day", "label": "Late-delivery LD rate", "unit": "%", "buyer_prefers": "higher", "step": 0.05, "decimals": 2},
+    {"key": "penalty_cap_pct", "label": "LD cap", "unit": "%", "buyer_prefers": "higher", "step": 0.5, "decimals": 1}
+  ],
+  "buyer": {
+    "role": "buyer",
+    "mandate": {
+      "unit_price": {"ideal": 305, "limit": 385, "weight": 0.30},
+      "delivery_days": {"ideal": 2, "limit": 6, "weight": 0.22},
+      "payment_terms_days": {"ideal": 75, "limit": 30, "weight": 0.08},
+      "sla_on_time_pct": {"ideal": 99.5, "limit": 97.0, "weight": 0.22},
+      "late_penalty_pct_per_day": {"ideal": 0.80, "limit": 0.20, "weight": 0.09},
+      "penalty_cap_pct": {"ideal": 12, "limit": 4, "weight": 0.09}
+    },
+    "batna_description": "Incumbent carrier roll-over: EUR 372/pallet, 4-day transit, Net 45, 97.5% OTIF",
+    "batna_terms": {"unit_price": 372, "delivery_days": 4, "payment_terms_days": 45, "sla_on_time_pct": 97.5, "late_penalty_pct_per_day": 0.2, "penalty_cap_pct": 4},
+    "budget_cap": 450000,
+    "auto_approve_limit": 500000,
+    "strategy": {"tactic": "boulware", "beta": 0.5, "reciprocity": 0.35, "tradeoff_sharpness": 0.2},
+    "notes": "Mandate asks for Net 75 by default - the Legal Arbiter clamps it to the 60-day EU ceiling at policy setup."
+  },
+  "suppliers": [
+    {
+      "id": "polar",
+      "party": {
+        "name": "Polar Freight Logistics B.V.",
+        "address": "Havenstraat 12, 3011 AB Rotterdam, The Netherlands",
+        "signatory_name": "Joris van Dijk",
+        "signatory_title": "Commercial Director Life Sciences",
+        "persona": "Asset-heavy reefer carrier looking to fill lane capacity"
+      },
+      "envelope": {
+        "role": "supplier",
+        "mandate": {
+          "unit_price": {"ideal": 420, "limit": 320, "weight": 0.36},
+          "delivery_days": {"ideal": 6, "limit": 3, "weight": 0.12},
+          "payment_terms_days": {"ideal": 15, "limit": 60, "weight": 0.18},
+          "sla_on_time_pct": {"ideal": 95.0, "limit": 99.2, "weight": 0.12},
+          "late_penalty_pct_per_day": {"ideal": 0.10, "limit": 0.50, "weight": 0.12},
+          "penalty_cap_pct": {"ideal": 3, "limit": 8, "weight": 0.10}
+        },
+        "batna_description": "Sell lane capacity on the spot freight exchange",
+        "batna_utility": 0.2,
+        "unit_cost": 302,
+        "min_margin_pct": 8,
+        "strategy": {"tactic": "conceder", "beta": 1.6, "reciprocity": 0.3, "tradeoff_sharpness": 0.2},
+        "notes": "Fill committed lanes before peak season; cash flow matters more than LD exposure."
+      }
+    }
+  ]
+}

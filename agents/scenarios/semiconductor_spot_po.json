@@ -1,0 +1,85 @@
+{
+  "id": "semiconductor_spot_po",
+  "title": "Automotive MCU spot PO",
+  "summary": "An EV maker sources 50,000 automotive-grade microcontrollers from an MSME fab partner during a tight allocation cycle. Price, lead time, payment terms, OTIF SLA, liquidated damages and warranty are all in play.",
+  "mode": "bilateral",
+  "tags": ["India", "MSME supplier", "7 issues", "spot PO"],
+  "max_rounds": 12,
+  "seed": 11,
+  "context": {
+    "reference": "RFQ-ORN-2026-0917",
+    "title": "Spot purchase of automotive MCUs",
+    "item": "32-bit automotive-grade microcontrollers (AEC-Q100 Grade 1)",
+    "item_description": "ARM Cortex-M7 MCU, 2 MB flash, LQFP-144, tape & reel",
+    "quantity": 50000,
+    "quantity_unit": "units",
+    "currency": "USD",
+    "incoterm": "DAP Chennai",
+    "delivery_location": "Orion Mobility plant, Oragadam, Chennai",
+    "jurisdiction": "IN",
+    "buyer": {
+      "name": "Orion Mobility Ltd.",
+      "address": "Plot 42, SIPCOT Industrial Park, Oragadam, Tamil Nadu 602105, India",
+      "signatory_name": "Ananya Rao",
+      "signatory_title": "Head of Strategic Procurement"
+    }
+  },
+  "issues": [
+    {"key": "unit_price", "label": "Unit price", "unit": "USD", "buyer_prefers": "lower", "step": 0.01, "decimals": 2},
+    {"key": "delivery_days", "label": "Delivery lead time", "unit": "days", "buyer_prefers": "lower", "step": 1, "decimals": 0},
+    {"key": "payment_terms_days", "label": "Payment terms", "unit": "days", "buyer_prefers": "higher", "step": 5, "decimals": 0},
+    {"key": "sla_on_time_pct", "label": "OTIF service level", "unit": "%", "buyer_prefers": "higher", "step": 0.1, "decimals": 1},
+    {"key": "late_penalty_pct_per_day", "label": "Late-delivery LD rate", "unit": "%", "buyer_prefers": "higher", "step": 0.05, "decimals": 2},
+    {"key": "penalty_cap_pct", "label": "LD cap", "unit": "%", "buyer_prefers": "higher", "step": 0.5, "decimals": 1},
+    {"key": "warranty_months", "label": "Warranty", "unit": "months", "buyer_prefers": "higher", "step": 1, "decimals": 0}
+  ],
+  "buyer": {
+    "role": "buyer",
+    "mandate": {
+      "unit_price": {"ideal": 3.40, "limit": 4.20, "weight": 0.34},
+      "delivery_days": {"ideal": 14, "limit": 35, "weight": 0.20},
+      "payment_terms_days": {"ideal": 45, "limit": 15, "weight": 0.10},
+      "sla_on_time_pct": {"ideal": 99.0, "limit": 95.0, "weight": 0.14},
+      "late_penalty_pct_per_day": {"ideal": 1.0, "limit": 0.25, "weight": 0.08},
+      "penalty_cap_pct": {"ideal": 15, "limit": 5, "weight": 0.08},
+      "warranty_months": {"ideal": 24, "limit": 12, "weight": 0.06}
+    },
+    "batna_description": "Broker stock from an authorised distributor: USD 4.05/unit, 28-day delivery, Net 30, 95% OTIF, minimal LDs, 12-month warranty",
+    "batna_terms": {"unit_price": 4.05, "delivery_days": 28, "payment_terms_days": 30, "sla_on_time_pct": 95.0, "late_penalty_pct_per_day": 0.25, "penalty_cap_pct": 5, "warranty_months": 12},
+    "budget_cap": 205000,
+    "auto_approve_limit": 190000,
+    "strategy": {"tactic": "boulware", "beta": 0.6, "reciprocity": 0.3, "tradeoff_sharpness": 0.2},
+    "notes": "CFO mandate FY26-Q3: programme cost target, line-stoppage risk is the top concern."
+  },
+  "suppliers": [
+    {
+      "id": "vega",
+      "party": {
+        "name": "Vega Semiconductors Pvt. Ltd.",
+        "address": "Survey No. 118, Electronics City Phase II, Bengaluru 560100, India",
+        "signatory_name": "Karthik Menon",
+        "signatory_title": "VP Sales & Key Accounts",
+        "is_msme": true,
+        "persona": "Cash-constrained MSME fab partner with scarce automotive allocation"
+      },
+      "envelope": {
+        "role": "supplier",
+        "mandate": {
+          "unit_price": {"ideal": 4.60, "limit": 3.60, "weight": 0.30},
+          "delivery_days": {"ideal": 42, "limit": 21, "weight": 0.14},
+          "payment_terms_days": {"ideal": 15, "limit": 45, "weight": 0.22},
+          "sla_on_time_pct": {"ideal": 92.0, "limit": 98.5, "weight": 0.10},
+          "late_penalty_pct_per_day": {"ideal": 0.10, "limit": 0.60, "weight": 0.12},
+          "penalty_cap_pct": {"ideal": 3, "limit": 10, "weight": 0.08},
+          "warranty_months": {"ideal": 12, "limit": 24, "weight": 0.04}
+        },
+        "batna_description": "Release the allocation to spot-market brokers (uncertain volume)",
+        "batna_utility": 0.18,
+        "unit_cost": 3.30,
+        "min_margin_pct": 12,
+        "strategy": {"tactic": "linear", "reciprocity": 0.3, "tradeoff_sharpness": 0.2},
+        "notes": "Finance: protect cash conversion cycle; LD exposure must stay insurable."
+      }
+    }
+  ]
+}

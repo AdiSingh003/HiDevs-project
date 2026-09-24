@@ -1,0 +1,23 @@
+[project]
+name = "hidevs-b2b-negotiator"
+version = "1.0.0"
+description = "Autonomous B2B supply-chain & SLA contract negotiator: bounded Lyzr agents, Legal Arbiter (Safe AI), signed contracts and AIMS audit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+testpaths = ["agents/tests", "backend/tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

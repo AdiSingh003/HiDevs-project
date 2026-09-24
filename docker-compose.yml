@@ -1,0 +1,18 @@
+services:
+  negotiator:
+    build: .
+    image: hidevs-b2b-negotiator:latest
+    container_name: hidevs-negotiator
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false   # runs fully offline without Lyzr keys
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - negotiator-data:/data   # contracts, audit ledgers, signing keys, run history
+    restart: unless-stopped
+
+volumes:
+  negotiator-data:

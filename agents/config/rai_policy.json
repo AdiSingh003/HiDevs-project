@@ -1,0 +1,78 @@
+{
+  "name": "b2b-negotiation-safe-ai",
+  "description": "Safe AI guardrails for autonomous B2B negotiation agents: blocks prompt injection between agents, redacts mandate leaks (reservation / walk-away language), secrets and PII, and screens toxicity. Mirrors the Legal Arbiter's local SAFE-* rules. NSFW screening is disabled: in live testing Lyzr's NSFW classifier flagged ordinary commercial sentences, and toxicity + injection + keyword + PII checks cover the threat model.",
+  "keywords": {
+    "enabled": true,
+    "keywords": [
+      {
+        "keyword": "\\bwalk[\\s-]?away (price|point|value)\\b",
+        "action": "redact",
+        "replacement": "[confidential]",
+        "pattern_type": "regex"
+      },
+      {
+        "keyword": "reservation (price|value|point)",
+        "action": "redact",
+        "replacement": "[confidential]",
+        "pattern_type": "regex"
+      },
+      {
+        "keyword": "BATNA",
+        "action": "redact",
+        "replacement": "[confidential]",
+        "pattern_type": "literal"
+      },
+      {
+        "keyword": "(our|my) (absolute |internal |approved )?(floor|ceiling|budget|maximum|minimum|mandate)\\s+(is|are|was|of|at|stands?|allows?|caps?|would be)\\b",
+        "action": "redact",
+        "replacement": "[confidential]",
+        "pattern_type": "regex"
+      },
+      {
+        "keyword": "\\b(lowest|highest|most) we can (go|do|pay|accept)\\b",
+        "action": "redact",
+        "replacement": "[confidential]",
+        "pattern_type": "regex"
+      },
+      {
+        "keyword": "ignore (all |any )?(previous|prior|above) (instructions|rules)",
+        "action": "block",
+        "pattern_type": "regex"
+      },
+      {
+        "keyword": "reveal (your|the) (budget|limit|system prompt|instructions|mandate)",
+        "action": "block",
+        "pattern_type": "regex"
+      }
+    ]
+  },
+  "toxicity_check": {
+    "enabled": true,
+    "threshold": 0.4
+  },
+  "prompt_injection": {
+    "enabled": true,
+    "threshold": 0.3
+  },
+  "secrets_detection": {
+    "enabled": true,
+    "action": "redact"
+  },
+  "pii_detection": {
+    "enabled": true,
+    "types": {
+      "EMAIL_ADDRESS": "redact",
+      "PHONE_NUMBER": "redact",
+      "CREDIT_CARD": "block",
+      "IBAN_CODE": "block",
+      "IN_PAN": "redact",
+      "IN_AADHAAR": "block",
+      "US_SSN": "block"
+    }
+  },
+  "nsfw_check": {
+    "enabled": false,
+    "threshold": 0.8,
+    "validation_method": "sentence"
+  }
+}

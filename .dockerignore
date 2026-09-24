@@ -1,0 +1,14 @@
+.venv
+.git
+.env
+.env.*
+!.env.example
+data
+resources
+e2e-screenshots
+scripts
+**/__pycache__
+**/.pytest_cache
+**/tests
+frontend/node_modules
+frontend/dist

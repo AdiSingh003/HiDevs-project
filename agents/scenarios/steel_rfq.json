@@ -1,0 +1,138 @@
+{
+  "id": "steel_rfq",
+  "title": "TMT rebar multi-vendor RFQ (1 buyer vs 3 suppliers)",
+  "summary": "An infrastructure EPC runs a competitive RFQ for 800 tonnes of Fe-550D rebar against three mills: a low-cost integrated mill, a premium fast-delivery mill and a cash-hungry MSME. Lanes negotiate in lockstep, competing quotes become the buyer's live leverage, and the Pareto-efficient deal wins.",
+  "mode": "rfq",
+  "tags": ["India", "multi-vendor RFQ", "Pareto award", "INR"],
+  "max_rounds": 10,
+  "seed": 31,
+  "context": {
+    "reference": "RFQ-TIP-STL-2026-078",
+    "title": "Supply of TMT reinforcement bars for Metro Line 4 viaduct",
+    "item": "TMT rebar Fe-550D (IS 1786), 12-32 mm",
+    "item_description": "Mill test certificates per heat, bundle tagging, delivered to site stockyard",
+    "quantity": 800,
+    "quantity_unit": "tonnes",
+    "currency": "INR",
+    "incoterm": "DAP Pune site",
+    "delivery_location": "Titan Infra casting yard, Hinjawadi, Pune",
+    "jurisdiction": "IN",
+    "buyer": {
+      "name": "Titan Infra Projects Ltd.",
+      "address": "Titan House, Baner Road, Pune 411045, India",
+      "signatory_name": "Rohan Kulkarni",
+      "signatory_title": "Chief Procurement Officer"
+    }
+  },
+  "issues": [
+    {"key": "unit_price", "label": "Price per tonne", "unit": "INR", "buyer_prefers": "lower", "step": 50, "decimals": 0},
+    {"key": "delivery_days", "label": "Delivery lead time", "unit": "days", "buyer_prefers": "lower", "step": 1, "decimals": 0},
+    {"key": "payment_terms_days", "label": "Payment terms", "unit": "days", "buyer_prefers": "higher", "step": 5, "decimals": 0},
+    {"key": "sla_on_time_pct", "label": "OTIF service level", "unit": "%", "buyer_prefers": "higher", "step": 0.1, "decimals": 1},
+    {"key": "late_penalty_pct_per_day", "label": "Late-delivery LD rate", "unit": "%", "buyer_prefers": "higher", "step": 0.05, "decimals": 2},
+    {"key": "penalty_cap_pct", "label": "LD cap", "unit": "%", "buyer_prefers": "higher", "step": 0.5, "decimals": 1},
+    {"key": "warranty_months", "label": "Quality guarantee", "unit": "months", "buyer_prefers": "higher", "step": 1, "decimals": 0}
+  ],
+  "buyer": {
+    "role": "buyer",
+    "mandate": {
+      "unit_price": {"ideal": 54000, "limit": 61000, "weight": 0.34},
+      "delivery_days": {"ideal": 10, "limit": 30, "weight": 0.20},
+      "payment_terms_days": {"ideal": 60, "limit": 15, "weight": 0.10},
+      "sla_on_time_pct": {"ideal": 99.0, "limit": 94.0, "weight": 0.14},
+      "late_penalty_pct_per_day": {"ideal": 0.80, "limit": 0.20, "weight": 0.08},
+      "penalty_cap_pct": {"ideal": 12, "limit": 5, "weight": 0.08},
+      "warranty_months": {"ideal": 24, "limit": 12, "weight": 0.06}
+    },
+    "batna_description": "Extend the current rate contract: INR 59,800/t, 21-day delivery, Net 30, 95% OTIF",
+    "batna_terms": {"unit_price": 59800, "delivery_days": 21, "payment_terms_days": 30, "sla_on_time_pct": 95.0, "late_penalty_pct_per_day": 0.25, "penalty_cap_pct": 5, "warranty_months": 12},
+    "budget_cap": 48400000,
+    "auto_approve_limit": 45000000,
+    "strategy": {"tactic": "boulware", "beta": 0.6, "reciprocity": 0.3, "tradeoff_sharpness": 0.2},
+    "notes": "Board-approved package budget INR 4.84 crore; CPO sign-off above INR 4.5 crore."
+  },
+  "suppliers": [
+    {
+      "id": "ferro",
+      "party": {
+        "name": "Ferro Steel Works Ltd.",
+        "address": "MIDC Tarapur, Boisar, Maharashtra 401506, India",
+        "signatory_name": "Vikram Shah",
+        "signatory_title": "GM Sales (Infrastructure)",
+        "persona": "Low-cost integrated mill with long rolling queues"
+      },
+      "envelope": {
+        "role": "supplier",
+        "mandate": {
+          "unit_price": {"ideal": 60000, "limit": 55500, "weight": 0.30},
+          "delivery_days": {"ideal": 40, "limit": 21, "weight": 0.25},
+          "payment_terms_days": {"ideal": 30, "limit": 60, "weight": 0.10},
+          "sla_on_time_pct": {"ideal": 90.0, "limit": 96.0, "weight": 0.15},
+          "late_penalty_pct_per_day": {"ideal": 0.10, "limit": 0.40, "weight": 0.08},
+          "penalty_cap_pct": {"ideal": 3, "limit": 8, "weight": 0.07},
+          "warranty_months": {"ideal": 12, "limit": 18, "weight": 0.05}
+        },
+        "batna_description": "Sell into the trade channel at prevailing distributor rates",
+        "batna_utility": 0.2,
+        "unit_cost": 51000,
+        "min_margin_pct": 8,
+        "strategy": {"tactic": "linear", "reciprocity": 0.3, "tradeoff_sharpness": 0.2}
+      }
+    },
+    {
+      "id": "krupa",
+      "party": {
+        "name": "Krupa Metals Pvt. Ltd.",
+        "address": "Plot 7, Chakan Industrial Area, Pune 410501, India",
+        "signatory_name": "Meera Iyer",
+        "signatory_title": "Director, Key Accounts",
+        "persona": "Premium mini-mill with fast delivery and tight quality control"
+      },
+      "envelope": {
+        "role": "supplier",
+        "mandate": {
+          "unit_price": {"ideal": 64500, "limit": 59000, "weight": 0.45},
+          "delivery_days": {"ideal": 14, "limit": 7, "weight": 0.10},
+          "payment_terms_days": {"ideal": 30, "limit": 60, "weight": 0.10},
+          "sla_on_time_pct": {"ideal": 96.0, "limit": 99.5, "weight": 0.10},
+          "late_penalty_pct_per_day": {"ideal": 0.20, "limit": 0.80, "weight": 0.10},
+          "penalty_cap_pct": {"ideal": 5, "limit": 12, "weight": 0.08},
+          "warranty_months": {"ideal": 18, "limit": 36, "weight": 0.07}
+        },
+        "batna_description": "Allocate capacity to export orders",
+        "batna_utility": 0.25,
+        "unit_cost": 54000,
+        "min_margin_pct": 9,
+        "strategy": {"tactic": "boulware", "beta": 0.7, "reciprocity": 0.3, "tradeoff_sharpness": 0.2}
+      }
+    },
+    {
+      "id": "sagar",
+      "party": {
+        "name": "Sagar Alloys (MSME)",
+        "address": "Shed 14, Bhosari MIDC, Pune 411026, India",
+        "signatory_name": "Imran Qureshi",
+        "signatory_title": "Managing Partner",
+        "is_msme": true,
+        "persona": "Balanced MSME re-roller that needs fast payment"
+      },
+      "envelope": {
+        "role": "supplier",
+        "mandate": {
+          "unit_price": {"ideal": 61500, "limit": 57000, "weight": 0.30},
+          "delivery_days": {"ideal": 25, "limit": 12, "weight": 0.12},
+          "payment_terms_days": {"ideal": 15, "limit": 45, "weight": 0.30},
+          "sla_on_time_pct": {"ideal": 93.0, "limit": 98.0, "weight": 0.10},
+          "late_penalty_pct_per_day": {"ideal": 0.10, "limit": 0.50, "weight": 0.08},
+          "penalty_cap_pct": {"ideal": 3, "limit": 10, "weight": 0.06},
+          "warranty_months": {"ideal": 12, "limit": 24, "weight": 0.04}
+        },
+        "batna_description": "Continue job-work for local builders",
+        "batna_utility": 0.2,
+        "unit_cost": 52500,
+        "min_margin_pct": 8,
+        "strategy": {"tactic": "linear", "beta": 1.2, "reciprocity": 0.3, "tradeoff_sharpness": 0.2}
+      }
+    }
+  ]
+}
