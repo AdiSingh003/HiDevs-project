@@ -12,7 +12,8 @@ import asyncio
 import sys
 import time
 import uuid
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from ..audit.aims import LyzrAIMSSink
 from ..core.utility import PRICE_KEY
@@ -29,10 +30,11 @@ OFFER = {"unit_price": 3.9, "delivery_days": 25, "payment_terms_days": 30, "sla_
          "late_penalty_pct_per_day": 0.4, "penalty_cap_pct": 8.0, "warranty_months": 18}
 
 
-async def run_checks(settings: LyzrSettings, full: bool = False) -> list[tuple[str, bool, str]]:
+async def run_checks(settings: LyzrSettings, full: bool = False, client: LyzrAgentClient | None = None,
+                     rai: LyzrRAIClient | None = None) -> list[tuple[str, bool, str]]:
     results: list[tuple[str, bool, str]] = []
-    client = LyzrAgentClient(settings)
-    rai = LyzrRAIClient(settings)
+    client = client or LyzrAgentClient(settings)
+    rai = rai or LyzrRAIClient(settings)
 
     async def check(name: str, fn: Callable[[], Awaitable[tuple[bool, str]]]) -> None:
         started = time.perf_counter()

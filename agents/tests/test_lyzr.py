@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -11,7 +10,7 @@ import pytest
 
 from agents.audit.aims import LyzrAIMSSink, reconcile_anchors
 from agents.audit.ledger import AuditLedger
-from agents.contract.automata_pipeline import DraftingPipeline, TemplateDraftingModel
+from agents.contract.automata_pipeline import DraftingPipeline
 from agents.contract.compiler import ContractCompiler, verify_contract
 from agents.contract.signing import KeyStore
 from agents.core.models import Action, Decision
@@ -24,102 +23,7 @@ from agents.negotiation.llm import LyzrBrain, parse_proposal
 from agents.platform import NegotiationPlatform
 from agents.scenarios import get_scenario
 
-BRIEF_RE = re.compile(r"BRIEF:\n(.*)", re.DOTALL)
-
-
-def settings(**overrides) -> LyzrSettings:
-    base = dict(lyzr_api_key="test-key", lyzr_user_id="qa@hidevs.test", lyzr_max_retries=2,
-                lyzr_buyer_agent_id="agent-buyer", lyzr_supplier_agent_id="agent-supplier",
-                lyzr_drafter_agent_id="agent-drafter", lyzr_reviewer_agent_id="agent-reviewer",
-                lyzr_summary_agent_id="agent-summary", lyzr_audit_agent_id="agent-audit",
-                lyzr_rai_policy_id="rai-1", lyzr_rai_buyer_policy_id="rai-b", lyzr_rai_supplier_policy_id="rai-s",
-                aims_mode="event_log")
-    base.update(overrides)
-    return LyzrSettings(_env_file=None, **base)
-
-
-class FakeLyzr:
-    """Stand-in for agent-prod + rai-prod, shaped after the live service: agents follow the policy engine's
-    recommended move; artefacts are stored and listable; anchor messages land in readable sessions."""
-
-    def __init__(self, rai_blocks: bool = False, opa_denies: bool = False, fail_chat: int = 0):
-        self.calls: list[tuple[str, str, dict]] = []
-        self.rai_blocks = rai_blocks
-        self.opa_denies = opa_denies
-        self.fail_chat = fail_chat
-        self.created = 0
-        self.agents: list[dict] = []
-        self.rai_policies: list[dict] = []
-        self.opa_policies: list[dict] = []
-        self.sessions: dict[str, list[dict]] = {}
-
-    def __call__(self, request: httpx.Request) -> httpx.Response:
-        body = json.loads(request.content) if request.content else {}
-        path, method = request.url.path, request.method
-        self.calls.append((method, path, body))
-        assert request.headers["x-api-key"] == "test-key"
-        if path == "/v3/inference/chat/":
-            if self.fail_chat:
-                self.fail_chat -= 1
-                return httpx.Response(503, json={"detail": "busy"})
-            message = body["message"]
-            if "[TASK:" in message:
-                return httpx.Response(200, json={"response": TemplateDraftingModel().generate_text(prompt=message)})
-            if message.startswith(("AUDIT_EVENT", "AUDIT_ANCHOR")):
-                msgs = self.sessions.setdefault(body["session_id"], [])
-                msgs.append({"_id": f"m{len(msgs)}", "role": "user", "content": message,
-                             "created_at": "2026-09-24T00:00:00"})
-                msgs.append({"_id": f"m{len(msgs)}", "role": "assistant", "content": "ACK"})
-                return httpx.Response(200, json={"response": "ACK"})
-            brief = json.loads(BRIEF_RE.search(message).group(1))
-            move = brief["recommended_move"]
-            reply = {"action": move["action"], "offer": move["offer"] or {},
-                     "message": f"[{brief['your_role']} via Lyzr] Let's keep moving towards a deal."}
-            return httpx.Response(200, json={"response": f"```json\n{json.dumps(reply)}\n```", "module_outputs": {}})
-        if path.startswith("/log/"):
-            return httpx.Response(200, json={"status": "success"})
-        if path.startswith("/v3/sessions/") and path.endswith("/messages"):
-            sid = path.split("/")[3]
-            if sid not in self.sessions:
-                return httpx.Response(404, json={"detail": "Session not found"})
-            return httpx.Response(200, json={"messages": self.sessions[sid]})
-        if path == "/v3/agents/":
-            if method == "GET":
-                return httpx.Response(200, json=self.agents)
-            self.created += 1
-            self.agents.append({"_id": f"created-{self.created}", "name": body["name"]})
-            return httpx.Response(200, json={"agent_id": f"created-{self.created}"})
-        if path.startswith("/v3/agents/") and method == "PUT":
-            return httpx.Response(200, json={"message": "Agent updated successfully."})
-        if path == "/v1/rai/inference":
-            text = body["input_text"]
-            if self.rai_blocks:
-                return httpx.Response(200, json={"input_text": text, "processed_text": "", "blocked": True,
-                                                 "block_reason": "prompt_injection"})
-            return httpx.Response(200, json={"input_text": text, "processed_text": text.replace("Lyzr", "L***"),
-                                             "blocked": False})
-        if path == "/v1/guardrails/evaluate-tool-call":
-            ids = [p["policy_id"] for p in body["opa_guardrail"]["managed_policies"]]
-            if not all(any(p["_id"] == pid for p in self.opa_policies) for pid in ids):
-                return httpx.Response(404, json={"detail": "OPA policy not found"})
-            if self.opa_denies:
-                return httpx.Response(200, json={"allowed": False, "denied_by": "opa", "reason": "mandate breach"})
-            return httpx.Response(200, json={"allowed": True})
-        for prefix, store, id_prefix in (("/v1/rai/policies", self.rai_policies, "rai"),
-                                         ("/v1/opa-policies", self.opa_policies, "opa")):
-            if path == prefix and method == "GET":
-                return httpx.Response(200, json=store)
-            if path == prefix:
-                item = {"_id": f"{id_prefix}-{len(store) + 1}", **body}
-                store.append(item)
-                return httpx.Response(200, json=item)
-            if path.startswith(prefix + "/") and method == "PUT":
-                return httpx.Response(200, json={"_id": path.rsplit("/", 1)[1], **body})
-        return httpx.Response(404, json={"detail": "not mocked"})
-
-
-def paths(fake: FakeLyzr, prefix: str) -> list[dict]:
-    return [b for _, p, b in fake.calls if p.startswith(prefix)]
+from .fakes import FakeLyzr, paths, settings
 
 
 class TestAgentClient:
@@ -289,7 +193,7 @@ async def test_full_platform_in_lyzr_mode(tmp_path):
     # the audit trail proves every delivered offer passed its own envelope's Lyzr guardrail
     reviews = [e.data for e in session.events if e.type == "turn_private"]
     assert len(reviews) == len(session.turns)
-    for ev, turn in zip(reviews, session.turns):
+    for ev, turn in zip(reviews, session.turns, strict=True):
         assert ev["safe_ai"]["lyzr_opa"] == "allowed"
         assert ev["safe_ai"]["guardrail"] == session.arbiter.guardrail(turn.actor).name
     assert not any(e.type == "turn_private" and e.data["actor"] == "buyer" for e in session.events_for("supplier"))
