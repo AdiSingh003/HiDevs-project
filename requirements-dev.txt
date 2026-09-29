@@ -1,6 +1,6 @@
 -r requirements.txt
 pytest>=8
-pytest-asyncio>=0.24
+pytest-asyncio>=1.4.0
 pytest-cov>=5
 ruff>=0.6
 # optional: browser end-to-end check (scripts/e2e_ui.py) - then run `python -m playwright install chromium`
