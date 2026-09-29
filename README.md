@@ -1,5 +1,7 @@
 # Autonomous B2B Supply Chain & SLA Contract Negotiator
 
+[![CI/CD](https://github.com/AdiSingh003/HiDevs-project/actions/workflows/ci.yml/badge.svg)](https://github.com/AdiSingh003/HiDevs-project/actions/workflows/ci.yml)
+
 *Hackathon problem statement PS 02: Enterprise B2B, Procurement and Supply Chain Management*
 
 Procurement negotiations are slow. A buyer and a supplier go back and forth over price, delivery dates, payment terms,
@@ -140,9 +142,11 @@ sequenceDiagram
 - **Architecture and testing.**
   - A layered Python package (core, guardrails, negotiation, contract, audit, lyzr), a FastAPI backend and a React
     frontend.
-  - 150 tests, including edge cases and every deadlock detector, a mocked Lyzr server built from the live API, and
-    cross-checks against a real OPA binary.
-  - A Playwright browser test and a GitHub Actions CI workflow.
+  - 184 Python tests (92% line and branch coverage) and 27 frontend tests. They cover every deadlock detector and edge
+    case, the API on both SQLite and PostgreSQL, a fake Lyzr modelled on the live API, and a real OPA binary.
+  - A CI/CD pipeline: lint, both test suites with a 90% coverage gate, a container smoke test and a Playwright browser
+    test, then deployment to Render with a check of the live site.
+  - Runs, contracts and audit logs live in a SQL database (SQLite locally, PostgreSQL in production).
 - **Dashboard and UX.**
   - The live arena shows the chat, the concession and bid curves, and both sides' offers moving toward the Pareto
     frontier.
@@ -166,12 +170,14 @@ OpenAI client. The code we use is plain Python that only needs `requests` and `p
 those pins.
 
 ```bash
-python -m pytest                                          # 150 tests (OPA checks run if `opa` is on PATH or OPA_BIN is set)
+ruff check .                                              # lint
+python -m pytest --cov                                    # 184 tests; fails below 90% coverage (OPA checks need `opa` on PATH or OPA_BIN)
+cd frontend && npm install && npm test && cd ..           # 27 frontend tests
 python -m agents.cli run semiconductor_spot_po --red-team # one negotiation in the terminal; contract lands in data/cli/
 python -m agents.cli rfq steel_rfq                        # the 1-vs-3 sourcing event
 python -m agents.cli rego semiconductor_spot_po --role buyer   # print the guardrail compiled from an envelope
 python -m agents.cli verify data/cli/contracts/<file>.json     # check a contract's hash and signatures
-cd frontend && npm install && npm run build && cd ..
+cd frontend && npm run build && cd ..
 uvicorn backend.app.main:app --port 8000                  # UI and API on http://localhost:8000
 ```
 
@@ -191,12 +197,14 @@ serves it. To set that up once:
 1. Sign in at render.com with GitHub and choose *New → Web Service*. Pick this repository; Render detects the
    Dockerfile.
 2. Choose the **Free** instance type.
-3. Under *Environment Variables*, add `TELEMETRY_WEBHOOK_SECRET` with any long random string. You don't need to set a
-   port: the container listens on whatever `PORT` Render gives it.
-4. Under *Advanced*, set the health check path to `/api/health`. If *Auto-Deploy* offers "After CI Checks Pass",
-   choose it, so a commit that fails CI never goes live.
+3. Under *Environment Variables*, add `TELEMETRY_WEBHOOK_SECRET` with any long random string, and `DATABASE_URL`
+   (see [The database](#the-database)). You don't need to set a port: the container listens on whatever `PORT`
+   Render gives it.
+4. Under *Advanced*, set the health check path to `/api/health`.
 5. Create the service. The first build takes a few minutes, and then the app is live at
    `https://<service-name>.onrender.com`.
+6. To let CI deploy (see [CI/CD](#cicd)), set *Auto-Deploy* to **Off** in the service's settings and copy its
+   *Deploy Hook* URL into a GitHub Actions secret named `RENDER_DEPLOY_HOOK_URL`.
 
 To use the Lyzr agents on the live site, open the service's *Environment* page, choose *Add from .env* and paste
 your `.env`. Without those variables the site runs on the offline engine.
@@ -222,6 +230,58 @@ python -m agents.lyzr.doctor --full                    # check every integration
 
 Provisioning is safe to run again. Agents and Safe AI policies are matched by name and updated in place. The OPA
 guardrails are named after a hash of their rules, so an existing one is simply reused.
+
+## Tests, CI/CD and the database
+
+### Tests
+
+There are 184 Python tests with 92% line and branch coverage, and 27 frontend tests with 99.6% line coverage of the
+UI's logic. CI fails if either falls below 90%.
+
+| Layer | What it covers | Where |
+|---|---|---|
+| Unit | Utility maths, the Pareto frontier and Nash point, concession strategy, every deadlock detector, the legal rules, message safety, contract hashing and signatures, the SLA engine | `agents/tests/` |
+| Stress | 400 random negotiations, including red-team runs, with zero policy breaches | `agents/tests/test_stress_edge.py` |
+| Lyzr integration | Agents, Safe AI, OPA guardrails and AIMS against a fake Lyzr modelled on the live API. Its OPA evaluates the real compiled guardrails | `agents/tests/test_lyzr.py`, `test_lyzr_tools.py`, `fakes.py` |
+| OPA cross-check | Every preset guardrail, run through a real `opa` binary, agrees with the arbiter | `agents/tests/test_guardrails.py` |
+| API and database | REST endpoints, live and replayed event streams, signed webhooks and persistence across restarts, on SQLite and on PostgreSQL | `backend/tests/` |
+| Command-line tools | Every CLI command, the doctor and provisioning | `agents/tests/test_cli.py`, `test_lyzr_tools.py` |
+| Frontend | The event reducer and chart maths, fed real event streams recorded from the backend, so the tests also pin the contract between the two; formatting helpers | `frontend/src/*.test.ts` |
+| Browser end to end | All six demo flows in Chromium against the built container | `scripts/e2e_ui.py` |
+
+To run the Python tests against PostgreSQL locally, set `TEST_DATABASE_URL` to an empty database. After changing the
+shape of an event, re-record the frontend fixtures with `python scripts/export_ui_fixtures.py`.
+
+### CI/CD
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
+
+1. **Lint** with ruff.
+2. **Python tests** twice: on SQLite and on a PostgreSQL 16 service, each with the coverage gate.
+3. **Frontend tests** with coverage, then the strict TypeScript build.
+4. **Container:** CI builds the Docker image and starts it the way Render runs it. It smoke-tests the health endpoint,
+   a full red-team negotiation, the contract's signatures and PDF, and Docker's own health check. Then the Playwright
+   suite drives the UI in the container.
+5. **Deploy** (pushes to `main` only, after everything above passes): CI triggers Render's deploy hook, waits until
+   the live site reports the new commit, and smoke-tests it.
+
+Dependabot proposes dependency updates weekly. With Render's auto-deploy off, a commit only reaches production through
+this pipeline.
+
+### The database
+
+Runs, their event histories, contract versions, processed webhook ids and the audit ledgers are stored with
+SQLAlchemy. Locally that's a SQLite file at `data/negotiator.db`. Set `DATABASE_URL` to use PostgreSQL instead; the
+tables are created on first start. Audit entries are keyed by stream and sequence number, so the database itself
+refuses to overwrite one. Signing keys stay as files under `DATA_DIR/keys`.
+
+For the live site we use a free [Neon](https://neon.tech) PostgreSQL database:
+
+1. Create a project at neon.tech and copy its connection string (it starts with `postgresql://` and ends with
+   `?sslmode=require`).
+2. Add it on Render as the `DATABASE_URL` environment variable. The app switches to the right driver automatically.
+
+With that, runs and contracts survive Render restarting or redeploying the app.
 
 ## What we checked on live Lyzr
 
@@ -390,12 +450,19 @@ agents/          the negotiation platform as a Python package
   audit/         hash-chained ledger and the Lyzr AIMS integration
   lyzr/          Lyzr API clients, settings, provisioning and the doctor check
   tests/
-backend/         FastAPI app: REST, SSE streaming, persistence, webhook security, tests
-frontend/        React + TypeScript arena, built with Vite
-scripts/         Playwright end-to-end test
+backend/         FastAPI app: REST, SSE streaming, SQL persistence (SQLite or PostgreSQL), webhook security, tests
+frontend/        React + TypeScript arena, built with Vite, with Vitest unit tests
+scripts/         Playwright end-to-end test, and the recorder for the frontend's test fixtures
 docs/            screenshots
-.github/         CI: tests with OPA, frontend build, container build and smoke test
+.github/         CI/CD pipeline and Dependabot
 ```
+
+## Contributing
+
+- Keep each commit to one change and describe it in the message, in the [Conventional Commits](https://www.conventionalcommits.org)
+  style: `feat:`, `fix:`, `test:`, `ci:`, `docs:`, `refactor:`.
+- Before pushing, run `ruff check .`, `python -m pytest --cov` and, in `frontend/`, `npm test` and `npm run build`.
+  CI runs the same checks.
 
 ## Security notes
 
@@ -407,14 +474,16 @@ docs/            screenshots
 - The audit log is append-only and hash-chained, and its head is anchored in Lyzr AIMS.
 - Webhooks are HMAC-signed, time-limited and idempotent. Secrets only live in `.env`, which git and Docker both
   ignore.
-- Before real production use you'd want authentication on the API, signing keys in a KMS or HSM, and durable storage
-  for `DATA_DIR`.
+- Before real production use you'd want authentication on the API, and signing keys in a KMS or HSM rather than files
+  under `DATA_DIR/keys`.
 
 ## Known limitations
 
 - Each issue is scored linearly. Curved preferences would need a numeric solver for the Pareto frontier.
 - A negotiation on the Lyzr LLM agents takes about two minutes: 20 turns, each screened by Safe AI.
 - On Render's free plan the app goes to sleep after 15 minutes without visitors and takes about a minute to wake up.
-  Its saved runs, contracts and signing keys are wiped whenever it restarts or redeploys.
+  Without `DATABASE_URL` its SQLite file is wiped whenever it restarts. With PostgreSQL the data survives, but the
+  signing keys are still files and get regenerated. Contracts signed earlier still verify, because each one carries its
+  signers' public keys.
 - If Lyzr fails while a contract is being drafted, the offline template drafts it instead, and the contract records
   that it did.
