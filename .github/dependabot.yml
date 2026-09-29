@@ -1,25 +1,39 @@
-# Weekly dependency updates, with minor and patch bumps grouped into one pull request per ecosystem.
+# Weekly dependency updates: one grouped pull request per ecosystem.
+# Major versions of the app's own dependencies (Python, npm, base images) are skipped: those upgrades change APIs
+# and are done deliberately. GitHub Actions majors are included, since they are usually drop-in runtime updates.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
     groups:
       python:
-        update-types: [minor, patch]
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
     groups:
       frontend:
-        update-types: [minor, patch]
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major, version-update:semver-minor]  # e.g. python 3.12 -> 3.14

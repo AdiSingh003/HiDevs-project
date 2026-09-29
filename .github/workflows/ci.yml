@@ -6,6 +6,7 @@ name: CI/CD
 
 on:
   push:
+    branches: [main]   # other branches are tested through their pull request, so each change runs once
   pull_request:
 
 concurrency:
