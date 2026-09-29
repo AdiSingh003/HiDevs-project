@@ -20,8 +20,10 @@ router = APIRouter(prefix="/api", tags=["meta"])
 
 
 @router.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "version": __version__}
+def health(service: RunService = Depends(get_service)) -> dict[str, str | None]:
+    # commit and started_at let the CD pipeline confirm that a new deploy is the one serving traffic
+    return {"status": "ok", "version": __version__, "commit": service.settings.git_commit,
+            "started_at": service.started_at}
 
 
 @router.get("/status")
@@ -29,6 +31,7 @@ def status(service: RunService = Depends(get_service)) -> dict[str, Any]:
     store = service.store
     return {
         **service.platform.status(),
+        "database": store.engine.dialect.name,
         "counts": {"runs": len(store.runs), "contracts": len(store.contracts), "active_tasks": len(service.tasks)},
         "version": __version__,
     }

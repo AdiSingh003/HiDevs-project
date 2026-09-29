@@ -1,23 +1,21 @@
-"""File-backed store for runs and contract versions (JSON on disk + in-memory indexes).
+"""Persistence for runs, events, contracts, telemetry idempotency and audit ledgers (see ``db.py`` for the schema).
 
-Layout under DATA_DIR:
-  runs/<run_id>.json                    run record + full event history (written when the run finishes)
-  contracts/<contract_id>/v<N>.json     every contract version (amendments are new versions)
-  audit/<stream_id>.jsonl               hash-chained audit ledgers (written by agents.audit.ledger)
-  keys/<signer>.pem                     Ed25519 signing keys
+The database is the source of truth. The app is a single process, so the store loads everything at start-up and
+keeps in-memory indexes for fast reads, writing every change straight through to the database. Signing keys
+stay under ``DATA_DIR/keys``.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import threading
-from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+from sqlalchemy import Engine, delete, insert, select, update
 
 from agents.core.models import utcnow
+
+from . import db
 
 log = logging.getLogger(__name__)
 RunKind = Literal["negotiation", "rfq", "renegotiation"]
@@ -50,54 +48,78 @@ class RunRecord(BaseModel):
         }
 
 
+class SqlLedgerBackend:
+    """Where ``AuditLedger`` keeps its entries: one row per entry, keyed by (stream, seq)."""
+
+    def __init__(self, engine: Engine):
+        self.engine = engine
+
+    def load(self, stream: str) -> list[dict[str, Any]]:
+        q = select(db.audit_entries.c.entry).where(db.audit_entries.c.stream == stream).order_by(db.audit_entries.c.seq)
+        with self.engine.connect() as conn:
+            return [row.entry for row in conn.execute(q)]
+
+    def append(self, entry: dict[str, Any]) -> None:
+        with self.engine.begin() as conn:
+            conn.execute(insert(db.audit_entries).values(stream=entry["stream"], seq=entry["seq"], hash=entry["hash"],
+                                                         entry=entry))
+
+    def streams(self) -> list[str]:
+        q = select(db.audit_entries.c.stream).distinct().order_by(db.audit_entries.c.stream)
+        with self.engine.connect() as conn:
+            return [row.stream for row in conn.execute(q)]
+
+
 class Store:
-    def __init__(self, data_dir: Path):
-        self.data_dir = data_dir
-        self.runs_dir = data_dir / "runs"
-        self.contracts_dir = data_dir / "contracts"
-        self.audit_dir = data_dir / "audit"
-        for d in (self.runs_dir, self.contracts_dir, self.audit_dir):
-            d.mkdir(parents=True, exist_ok=True)
+    def __init__(self, database_url: str):
+        self.engine = db.make_engine(database_url)
+        db.metadata.create_all(self.engine)
+        self.ledger_backend = SqlLedgerBackend(self.engine)
         self.runs: dict[str, RunRecord] = {}
         self.run_events: dict[str, list[dict[str, Any]]] = {}
         self.contracts: dict[str, dict[int, dict[str, Any]]] = {}
         self.seen_events: set[str] = set()
-        self._lock = threading.Lock()
         self._load()
 
     def _load(self) -> None:
-        for path in sorted(self.runs_dir.glob("*.json")):
-            try:
-                raw = json.loads(path.read_text(encoding="utf-8"))
-                record = RunRecord.model_validate(raw["record"])
-                if record.status == "running":  # the process died mid-run
+        with self.engine.begin() as conn:
+            for row in conn.execute(select(db.runs.c.id, db.runs.c.record)):
+                record = RunRecord.model_validate(row.record)
+                if record.status == "running":  # the process stopped mid-run
                     record.status = "interrupted"
+                    conn.execute(update(db.runs).where(db.runs.c.id == record.id)
+                                 .values(status=record.status, record=record.model_dump(mode="json")))
                 self.runs[record.id] = record
-                self.run_events[record.id] = raw.get("events", [])
-            except Exception as exc:  # pragma: no cover - corrupted file
-                log.warning("skipping unreadable run file %s: %s", path, exc)
-        for path in sorted(self.contracts_dir.glob("*/v*.json")):
-            try:
-                contract = json.loads(path.read_text(encoding="utf-8"))
+                self.run_events[record.id] = []
+            for row in conn.execute(select(db.run_events).order_by(db.run_events.c.run_id, db.run_events.c.seq)):
+                self.run_events.setdefault(row.run_id, []).append(row.event)
+            for row in conn.execute(select(db.contracts.c.document)):
+                contract = row.document
                 self.contracts.setdefault(contract["contract_id"], {})[int(contract["version"])] = contract
-                amendment = contract.get("amendment") or {}
-                if amendment.get("event", {}).get("event_id"):
-                    self.seen_events.add(amendment["event"]["event_id"])
-            except Exception as exc:  # pragma: no cover
-                log.warning("skipping unreadable contract file %s: %s", path, exc)
+            self.seen_events.update(row.event_id for row in conn.execute(select(db.telemetry_events.c.event_id)))
 
     # ------------------------------------------------------------------ runs
 
+    def _upsert_run(self, conn: Any, record: RunRecord) -> None:
+        values = {"kind": record.kind, "status": record.status, "created_at": record.created_at,
+                  "record": record.model_dump(mode="json")}
+        if conn.execute(update(db.runs).where(db.runs.c.id == record.id).values(**values)).rowcount == 0:
+            conn.execute(insert(db.runs).values(id=record.id, **values))
+
     def put_run(self, record: RunRecord) -> None:
         self.runs[record.id] = record
+        with self.engine.begin() as conn:
+            self._upsert_run(conn, record)
 
     def save_run(self, record: RunRecord, events: list[dict[str, Any]]) -> None:
         self.runs[record.id] = record
         self.run_events[record.id] = events
-        path = self.runs_dir / f"{record.id}.json"
-        with self._lock:
-            path.write_text(json.dumps({"record": record.model_dump(mode="json"), "events": events}, default=str),
-                            encoding="utf-8")
+        rows = [{"run_id": record.id, "seq": i, "event": e} for i, e in enumerate(events, 1)]
+        with self.engine.begin() as conn:
+            self._upsert_run(conn, record)
+            conn.execute(delete(db.run_events).where(db.run_events.c.run_id == record.id))
+            if rows:
+                conn.execute(insert(db.run_events), rows)
 
     def list_runs(self, kind: str | None = None) -> list[RunRecord]:
         runs = [r for r in self.runs.values() if kind is None or r.kind == kind]
@@ -108,10 +130,11 @@ class Store:
     def save_contract(self, contract: dict[str, Any]) -> None:
         cid, version = contract["contract_id"], int(contract["version"])
         self.contracts.setdefault(cid, {})[version] = contract
-        folder = self.contracts_dir / cid
-        folder.mkdir(parents=True, exist_ok=True)
-        with self._lock:
-            (folder / f"v{version}.json").write_text(json.dumps(contract, indent=2), encoding="utf-8")
+        key = (db.contracts.c.contract_id == cid) & (db.contracts.c.version == version)
+        with self.engine.begin() as conn:
+            if conn.execute(update(db.contracts).where(key).values(document=contract)).rowcount == 0:
+                conn.execute(insert(db.contracts).values(contract_id=cid, version=version,
+                                                         created_at=contract["created_at"], document=contract))
 
     def contract(self, contract_id: str, version: int | None = None) -> dict[str, Any] | None:
         versions = self.contracts.get(contract_id)
@@ -137,7 +160,22 @@ class Store:
             })
         return sorted(out, key=lambda x: x["created_at"], reverse=True)
 
+    # ------------------------------------------------------------------ telemetry idempotency
+
+    def mark_event_seen(self, event_id: str, contract_id: str | None = None) -> bool:
+        """Record a processed webhook event. Returns False when it was already seen."""
+        if event_id in self.seen_events:
+            return False
+        self.seen_events.add(event_id)
+        with self.engine.begin() as conn:
+            conn.execute(insert(db.telemetry_events).values(event_id=event_id, contract_id=contract_id,
+                                                            received_at=utcnow()))
+        return True
+
     # ------------------------------------------------------------------ audit
 
     def audit_streams(self) -> list[str]:
-        return sorted(p.stem for p in self.audit_dir.glob("*.jsonl"))
+        return self.ledger_backend.streams()
+
+    def close(self) -> None:
+        self.engine.dispose()

@@ -48,17 +48,31 @@ class AIMSSink(Protocol):
     async def push(self, entry: AuditEntry) -> bool: ...
 
 
+class LedgerBackend(Protocol):
+    """Durable storage for a ledger's entries (the web app keeps them in its database)."""
+
+    def load(self, stream: str) -> list[dict[str, Any]]: ...
+
+    def append(self, entry: dict[str, Any]) -> None: ...
+
+
 class AuditLedger:
-    def __init__(self, stream: str, path: Path | None = None, sink: AIMSSink | None = None):
+    """Entries persist to ``backend`` when given, else to a JSONL file at ``path`` (the CLI), else memory only."""
+
+    def __init__(self, stream: str, path: Path | None = None, sink: AIMSSink | None = None,
+                 backend: LedgerBackend | None = None):
         self.stream = stream
-        self.path = path
+        self.path = None if backend is not None else path
+        self.backend = backend
         self.sink = sink
         self.entries: list[AuditEntry] = []
         self.sync_status: dict[int, str] = {}
         self.anchors: list[dict[str, Any]] = []
         self._pending: set[asyncio.Task[Any]] = set()
-        if path is not None and path.exists():
-            for line in path.read_text(encoding="utf-8").splitlines():
+        if backend is not None:
+            self.entries = [AuditEntry.model_validate(e) for e in backend.load(stream)]
+        elif self.path is not None and self.path.exists():
+            for line in self.path.read_text(encoding="utf-8").splitlines():
                 if line.strip():
                     self.entries.append(AuditEntry.model_validate_json(line))
 
@@ -73,7 +87,9 @@ class AuditLedger:
                            prev_hash=self.head)
         entry.hash = entry.digest()
         self.entries.append(entry)
-        if self.path is not None:
+        if self.backend is not None:
+            self.backend.append(entry.model_dump(mode="json"))
+        elif self.path is not None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.path.open("a", encoding="utf-8") as fh:
                 fh.write(entry.model_dump_json() + "\n")

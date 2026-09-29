@@ -74,6 +74,7 @@ class RunService:
         self.store = store
         self.bus = bus
         self.settings = settings
+        self.started_at = utcnow()
         self.tasks: set[asyncio.Task[Any]] = set()
         self.ledgers: dict[str, AuditLedger] = {}
         for run_id, events in store.run_events.items():
@@ -199,7 +200,7 @@ class RunService:
         contract = self.store.contract(event.contract_id)
         if contract is None:
             raise KeyError(f"unknown contract '{event.contract_id}'")
-        self.store.seen_events.add(event.event_id)
+        self.store.mark_event_seen(event.event_id, event.contract_id)
         assessment = self.platform.assess_event(event, contract)
         ledger = self.ledger(contract["negotiation"]["negotiation_id"])
         ledger.append("telemetry_received", event.source, event.model_dump(mode="json"), ["public"])

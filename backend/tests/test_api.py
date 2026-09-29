@@ -33,7 +33,9 @@ def signed_post(client, payload: dict, secret: str = SECRET, ts: int | None = No
 
 class TestMeta:
     def test_health_status_scenarios(self, client):
-        assert client.get("/api/health").json()["status"] == "ok"
+        health = client.get("/api/health").json()
+        assert health["status"] == "ok" and health["started_at"] and "commit" in health
+        assert client.get("/api/status").json()["database"] in ("sqlite", "postgresql")
         status = client.get("/api/status").json()
         assert status["llm_modes"] == ["offline"] and status["safe_ai"]["local_rules"]
         assert status["automata"]["engine"] == "lyzr-automata LinearSyncPipeline"
@@ -230,7 +232,7 @@ class TestAudit:
 def test_state_survives_restart(tmp_path):
     with TestClient(make_app(tmp_path)) as c:
         rec = c.post("/api/negotiations", json={"scenario_id": "semiconductor_spot_po", "wait": True}).json()
-    with TestClient(make_app(tmp_path)) as c:
+    with TestClient(make_app(tmp_path, fresh=False)) as c:  # same database, new process
         assert c.get(f"/api/runs/{rec['id']}").json()["status"] == "agreement"
         assert c.post(f"/api/contracts/{rec['contract_id']}/verify").json()["valid"]
         events = c.get(f"/api/runs/{rec['id']}/events", params={"format": "json"}).json()

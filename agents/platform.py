@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .audit.aims import LyzrAIMSSink
-from .audit.ledger import AuditLedger
+from .audit.ledger import AuditLedger, LedgerBackend
 from .contract.automata_pipeline import DraftingPipeline
 from .contract.compiler import ContractCompiler
 from .contract.signing import KeyStore
@@ -34,9 +35,11 @@ Listener = Callable[[NegotiationEvent], Any]
 
 
 class NegotiationPlatform:
-    def __init__(self, data_dir: Path | None = None, settings: LyzrSettings | None = None):
+    def __init__(self, data_dir: Path | None = None, settings: LyzrSettings | None = None,
+                 ledger_backend: LedgerBackend | None = None):
         self.settings = settings or get_lyzr_settings()
         self.data_dir = data_dir
+        self.ledger_backend = ledger_backend  # the web app's database; the CLI keeps JSONL files under data_dir
         self.keystore = KeyStore(data_dir / "keys" if data_dir else None)
         self.client: LyzrAgentClient | None = None
         self.gateway: SafeAIGateway | None = None
@@ -81,7 +84,7 @@ class NegotiationPlatform:
 
     def ledger(self, stream_id: str) -> AuditLedger:
         path = self.data_dir / "audit" / f"{stream_id}.jsonl" if self.data_dir else None
-        return AuditLedger(stream_id, path=path, sink=self.aims)
+        return AuditLedger(stream_id, path=path, sink=self.aims, backend=self.ledger_backend)
 
     # ------------------------------------------------------------------ flows
 

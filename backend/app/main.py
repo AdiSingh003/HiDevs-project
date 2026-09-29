@@ -6,9 +6,8 @@ Run: ``uvicorn backend.app.main:app --reload`` from the repository root.
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,10 +32,12 @@ def create_app(settings: AppSettings | None = None, lyzr_settings: LyzrSettings 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.data_dir.mkdir(parents=True, exist_ok=True)
-        platform = NegotiationPlatform(settings.data_dir, lyzr_settings)
-        app.state.service = RunService(platform, Store(settings.data_dir), EventBus(), settings)
+        store = Store(settings.db_url)
+        platform = NegotiationPlatform(settings.data_dir, lyzr_settings, ledger_backend=store.ledger_backend)
+        app.state.service = RunService(platform, store, EventBus(), settings)
         yield
         await app.state.service.shutdown()
+        store.close()
 
     app = FastAPI(
         title="Autonomous B2B Supply Chain & SLA Contract Negotiator",
