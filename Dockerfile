@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- 1. build the arena UI ------------------------------------------------------------------
-FROM node:20-alpine AS ui
+FROM node:26-alpine AS ui
 WORKDIR /ui
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
