@@ -1,13 +1,13 @@
 # Runtime dependencies (tested with Python 3.12).
 # Lyzr Automata is installed separately - see README "Running it":
 #   pip install --no-deps --ignore-requires-python lyzr-automata==0.1.3
-fastapi>=0.115,<1.0
-uvicorn[standard]>=0.30
-pydantic>=2.7,<3
-pydantic-settings>=2.3
-httpx>=0.27
-reportlab>=4.0
-cryptography>=42
-requests>=2.31
-sqlalchemy>=2.0,<3
-psycopg[binary]>=3.2
+fastapi>=0.141.1,<1.0
+uvicorn[standard]>=0.54.0
+pydantic>=2.13.5,<3
+pydantic-settings>=2.15.0
+httpx>=0.28.1
+reportlab>=5.0.1
+cryptography>=50.0.1
+requests>=2.34.2
+sqlalchemy>=2.0.54,<3
+psycopg[binary]>=3.3.6
