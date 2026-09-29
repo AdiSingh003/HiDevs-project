@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "### Python coverage (${{ matrix.database }})" >> "$GITHUB_STEP_SUMMARY"
           python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always() && matrix.database == 'sqlite'
         with:
           name: python-coverage
@@ -140,7 +140,7 @@ jobs:
           pip install "playwright>=1.45"
           python -m playwright install --with-deps chromium
           python scripts/e2e_ui.py --base http://127.0.0.1:8000 --out e2e-screenshots
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-screenshots
