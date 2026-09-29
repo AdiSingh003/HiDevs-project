@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -28,7 +28,7 @@ class Direction(str, Enum):
     LOWER = "lower"
     HIGHER = "higher"
 
-    def flip(self) -> "Direction":
+    def flip(self) -> Direction:
         return Direction.HIGHER if self is Direction.LOWER else Direction.LOWER
 
 
@@ -71,7 +71,7 @@ class IssueMandate(BaseModel):
     weight: float = Field(gt=0)
 
     @model_validator(mode="after")
-    def _distinct(self) -> "IssueMandate":
+    def _distinct(self) -> IssueMandate:
         if self.ideal == self.limit:
             raise ValueError("ideal and limit must differ")
         return self
@@ -86,7 +86,7 @@ class StrategyProfile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     tactic: Literal["boulware", "linear", "conceder"] = "linear"
-    beta: Optional[float] = Field(None, gt=0)
+    beta: float | None = Field(None, gt=0)
     reciprocity: float = Field(0.3, ge=0, le=1)
     tradeoff_sharpness: float = Field(0.2, gt=0, le=5)
     opening_utility: float = Field(1.0, ge=0.5, le=1.0)
@@ -108,13 +108,13 @@ class Envelope(BaseModel):
     role: Role
     mandate: dict[str, IssueMandate]
     batna_description: str = ""
-    batna_terms: Optional[Terms] = None
-    batna_utility: Optional[float] = Field(None, ge=0, le=1)
+    batna_terms: Terms | None = None
+    batna_utility: float | None = Field(None, ge=0, le=1)
     min_utility: float = Field(0.0, ge=0, le=0.95)
-    budget_cap: Optional[float] = Field(None, gt=0)
-    auto_approve_limit: Optional[float] = Field(None, gt=0)
-    unit_cost: Optional[float] = Field(None, gt=0)
-    min_margin_pct: Optional[float] = Field(None, ge=0)
+    budget_cap: float | None = Field(None, gt=0)
+    auto_approve_limit: float | None = Field(None, gt=0)
+    unit_cost: float | None = Field(None, gt=0)
+    min_margin_pct: float | None = Field(None, ge=0)
     strategy: StrategyProfile = Field(default_factory=StrategyProfile)
     notes: str = ""
 
@@ -183,7 +183,7 @@ class Scenario(BaseModel):
     seed: int = 7
 
     @model_validator(mode="after")
-    def _consistent(self) -> "Scenario":
+    def _consistent(self) -> Scenario:
         keys = {i.key for i in self.issues}
         if len(keys) != len(self.issues):
             raise ValueError("duplicate issue keys")
@@ -227,8 +227,8 @@ class RuleViolation(BaseModel):
     category: Literal["schema", "legal", "policy", "safety"]
     severity: Literal["block", "redact", "warn"]
     message: str
-    issue: Optional[str] = None
-    citation: Optional[str] = None
+    issue: str | None = None
+    citation: str | None = None
     private: bool = False  # private-policy findings are only shown to the sender
 
 
@@ -257,10 +257,10 @@ class Verdict(BaseModel):
 
 class Decision(BaseModel):
     action: Action
-    offer: Optional[Terms] = None
+    offer: Terms | None = None
     message: str = ""
     source: Literal["engine", "llm", "rogue", "fallback", "mediator"] = "engine"
-    target_utility: Optional[float] = None
+    target_utility: float | None = None
     rationale: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -271,15 +271,15 @@ class TurnRecord(BaseModel):
     round: int
     actor: Role
     action: Action
-    offer: Optional[Terms] = None
+    offer: Terms | None = None
     message: str = ""
     source: str = "engine"
     verdict_status: str = "approved"
     public_violations: list[RuleViolation] = Field(default_factory=list)
     interventions: int = 0
-    u_buyer: Optional[float] = None
-    u_supplier: Optional[float] = None
-    gap: Optional[float] = None
+    u_buyer: float | None = None
+    u_supplier: float | None = None
+    gap: float | None = None
     ts: str = Field(default_factory=utcnow)
 
 

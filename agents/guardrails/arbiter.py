@@ -21,8 +21,18 @@ import math
 import secrets
 from dataclasses import dataclass, field
 
-from ..core.models import (Action, Decision, Envelope, Redaction, Role, RuleViolation, Scenario, SupplierProfile,
-                           Terms, Verdict)
+from ..core.models import (
+    Action,
+    Decision,
+    Envelope,
+    Redaction,
+    Role,
+    RuleViolation,
+    Scenario,
+    SupplierProfile,
+    Terms,
+    Verdict,
+)
 from ..core.pareto import BargainingSpace, FrontierPoint
 from ..core.strategy import ConcessionSchedule
 from ..core.utility import PRICE_KEY, UtilityModel

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from itertools import pairwise
 
 from .models import Direction, IssueSpec, Terms
 from .utility import EPS, UtilityModel
@@ -132,7 +133,7 @@ class BargainingSpace:
         if len(verts) <= 1:
             return list(verts)
         out = [verts[0]]
-        for a, b in zip(verts, verts[1:]):
+        for a, b in pairwise(verts):
             moving = [k for k in b.positions if b.positions[k] != a.positions[k]]
             for i in range(1, samples_per_segment + 1):
                 s = i / samples_per_segment
@@ -149,7 +150,7 @@ class BargainingSpace:
             return None
         if u_supplier <= verts[0].u_supplier:
             return verts[0].u_buyer
-        for a, b in zip(verts, verts[1:]):
+        for a, b in pairwise(verts):
             if a.u_supplier - EPS <= u_supplier <= b.u_supplier + EPS:
                 span = b.u_supplier - a.u_supplier
                 s = 0.0 if span <= EPS else (u_supplier - a.u_supplier) / span
@@ -167,7 +168,7 @@ class BargainingSpace:
             return None
         d_b, d_s = self.d_buyer, self.d_supplier
         best: tuple[float, FrontierPoint] | None = None
-        segments = list(zip(verts, verts[1:])) or [(verts[0], verts[0])]
+        segments = list(pairwise(verts)) or [(verts[0], verts[0])]
         for a, b in segments:
             db = a.u_buyer - b.u_buyer
             ds = b.u_supplier - a.u_supplier

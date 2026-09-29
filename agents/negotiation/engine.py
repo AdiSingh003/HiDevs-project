@@ -13,13 +13,27 @@ import asyncio
 import inspect
 import random
 import uuid
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from ..audit.ledger import AuditLedger
-from ..core.models import (Action, Decision, Envelope, EventVisibility, NegotiationEvent, Outcome, Role, Scenario,
-                           Terms, TurnRecord, Verdict, other_role, utcnow)
+from ..core.models import (
+    Action,
+    Decision,
+    Envelope,
+    EventVisibility,
+    NegotiationEvent,
+    Outcome,
+    Role,
+    Scenario,
+    Terms,
+    TurnRecord,
+    Verdict,
+    other_role,
+    utcnow,
+)
 from ..core.utility import PRICE_KEY
 from ..guardrails.arbiter import LegalArbiter, ReviewContext
 from ..lyzr.rai import SafeAIGateway

@@ -14,9 +14,9 @@ from agents.contract.compiler import ContractCompiler, content_hash, verify_cont
 from agents.contract.pdf import render_contract_pdf
 from agents.contract.signing import KeyStore
 from agents.contract.sla import evaluate_delay, evaluate_otif
+from agents.lyzr.settings import LyzrSettings
 from agents.negotiation.engine import NegotiationSession
 from agents.platform import NegotiationPlatform
-from agents.lyzr.settings import LyzrSettings
 from agents.scenarios import get_scenario
 
 

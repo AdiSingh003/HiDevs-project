@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 import pytest
 
 from agents.core.models import Envelope, IssueMandate
@@ -57,7 +59,7 @@ class TestBargainingSpace:
     def test_frontier_is_monotone_trade_off(self, arbiter):
         pts = arbiter.space.frontier(4)
         assert len(pts) > 2
-        for a, b in zip(pts, pts[1:]):
+        for a, b in pairwise(pts):
             assert b.u_buyer <= a.u_buyer + 1e-9
             assert b.u_supplier >= a.u_supplier - 1e-9
 
@@ -102,7 +104,7 @@ class TestStrategy:
         targets = [sch.target(k) for k in range(10)]
         assert targets[0] == pytest.approx(1.0)
         assert targets[-1] == pytest.approx(0.2)
-        assert all(a >= b - 1e-12 for a, b in zip(targets, targets[1:]))
+        assert all(a >= b - 1e-12 for a, b in pairwise(targets))
 
     def test_boulware_holds_firmer_than_conceder(self):
         boulware = ConcessionSchedule(1.0, 0.2, 0.35, 10).target(5)

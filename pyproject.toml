@@ -18,6 +18,25 @@ filterwarnings = [
     "ignore:Using `httpx` with `starlette.testclient` is deprecated",
 ]
 
+[tool.coverage.run]
+source = ["agents", "backend"]
+omit = ["*/tests/*"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = ["if __name__ == .__main__.:", "raise NotImplementedError", "if TYPE_CHECKING:"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+extend-exclude = ["design-options"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",  # lines are wrapped by hand at ~120; long rule and log messages are left whole
+    "B008",  # FastAPI's Depends(...) / Query(...) in parameter defaults is the framework's intended pattern
+]

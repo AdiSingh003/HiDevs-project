@@ -118,6 +118,7 @@ def render_contract_pdf(contract: dict[str, Any]) -> bytes:
         [parties["supplier"]["name"] + (" (MSME)" if parties["supplier"].get("is_msme") else ""),
          parties["supplier"].get("address", ""),
          f"Signatory: {parties['supplier']['signatory_name']}, {parties['supplier']['signatory_title']}"],
+        strict=True,
     ):
         rows.append([_p(role_rows[0], s["cell"]), _p(role_rows[1], s["cell"])])
     story.append(_table(rows, [width / 2, width / 2]))

@@ -15,8 +15,16 @@ from agents.core.utility import PRICE_KEY
 from agents.guardrails.arbiter import LegalArbiter, ReviewContext
 from agents.guardrails.rego import compile_rego
 from agents.guardrails.rules import Rulebook
-from agents.guardrails.safety import (INJECTION_REPLACEMENT, LEAK_REPLACEMENT, detect_leaks, extract_numbers,
-                                      neutralise_injection, sanitise_message, scrub_pii, scrub_toxicity)
+from agents.guardrails.safety import (
+    INJECTION_REPLACEMENT,
+    LEAK_REPLACEMENT,
+    detect_leaks,
+    extract_numbers,
+    neutralise_injection,
+    sanitise_message,
+    scrub_pii,
+    scrub_toxicity,
+)
 from agents.lyzr.provision import build_guardrails
 from agents.scenarios import get_scenario, load_scenarios
 
@@ -188,8 +196,8 @@ class TestRego:
             policy = tmp_path / f"{role}.rego"
             policy.write_text(rego, encoding="utf-8")
             package = rego.splitlines()[0].split()[1]
-            shapes = [lambda o: {"tool_args": {"role": role, "offer": o}},  # plain OPA callers
-                      lambda o: {"request": {"tool_name": "submit_offer", "arguments": {"role": role, "offer": o}},
+            shapes = [lambda o, role=role: {"tool_args": {"role": role, "offer": o}},  # plain OPA callers
+                      lambda o, role=role: {"request": {"tool_name": "submit_offer", "arguments": {"role": role, "offer": o}},
                                  "context": {}}]  # Lyzr managed OPA (verified against the live service)
             for offer in cases:
                 local = arbiter.schema_violations(offer) or (
